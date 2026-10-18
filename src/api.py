@@ -11,6 +11,11 @@ Endpoints:
     GET  /api/results/eval       -> results/eval.json (Feature 6)
     GET  /api/corpus             -> corpus + chunk statistics (bundled
                                     documents + session companies)
+    GET  /api/market/quote       -> delayed quote (Yahoo, Stooq fallback)
+    GET  /api/market/history     -> daily closes for charting
+    GET  /api/market/overview    -> indices + active-corpus companies
+    GET  /api/market/trending    -> Yahoo trending tickers
+    GET  /api/market/filing-figures -> corpus figures table by year
     GET  /api/health             -> liveness + generation mode
 
 Run: ``uvicorn src.api:app --port 8000`` (the Next.js app in web/
@@ -28,7 +33,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from src import edgar, registry, session_ingest
+from src import edgar, market, registry, session_ingest
 from src.chunking import STRATEGIES, chunk_corpus
 from src.graph import get_llm, run
 from src.ingest import REPO_ROOT, find_item_sections, load_bundled_documents
@@ -59,6 +64,7 @@ def _warm() -> None:
         for strategy in STRATEGIES:
             get_index(strategy)
         edgar.load_ticker_map()  # cache the SEC company map for resolve
+        market.prewarm()  # delayed quotes + sparks for the market strip
     except Exception:
         pass  # a warm-up failure surfaces properly on the first request
 
@@ -173,6 +179,47 @@ def _results_file(name: str) -> dict:
     if not path.exists():
         raise HTTPException(404, f"{name} not generated yet — run the experiment/eval first")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+_MARKET_TICKER_RE = re.compile(r"^[A-Za-z\^][A-Za-z0-9.\^\-]{0,11}$")
+
+
+def _market_ticker(raw: str) -> str:
+    ticker = raw.strip().upper()
+    if not _MARKET_TICKER_RE.match(ticker):
+        raise HTTPException(400, f"invalid ticker {raw!r}")
+    return ticker
+
+
+@app.get("/api/market/quote")
+def market_quote(ticker: str) -> dict:
+    """Delayed quote for one ticker (Yahoo primary, Stooq fallback).
+    Market data is a presentation layer only — it never feeds chat
+    answers; source failures degrade to ``available: false``."""
+    return market.get_quote(_market_ticker(ticker))
+
+
+@app.get("/api/market/history")
+def market_history(ticker: str, range: str = "6mo") -> dict:
+    return market.get_history(_market_ticker(ticker), range)
+
+
+@app.get("/api/market/overview")
+def market_overview() -> dict:
+    """Indices + every active-corpus company, with 1-month sparks."""
+    return market.get_overview()
+
+
+@app.get("/api/market/trending")
+def market_trending() -> dict:
+    return market.get_trending()
+
+
+@app.get("/api/market/filing-figures")
+def market_filing_figures(ticker: str) -> dict:
+    """The corpus figures table (revenue + net income by fiscal year)
+    for one company — the 'from the filing' half of the snapshot."""
+    return market.get_filing_figures(_market_ticker(ticker))
 
 
 @app.get("/api/results/comparison")

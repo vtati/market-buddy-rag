@@ -11,6 +11,7 @@ faiss-cpu==1.15.1
 rank-bm25==0.2.2
 fastapi==0.146.0
 uvicorn==0.54.0
+yfinance==1.7.0
 httpx==0.28.1
 python-dotenv==1.2.4
 numpy==2.5.4
