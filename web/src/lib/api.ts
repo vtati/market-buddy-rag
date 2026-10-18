@@ -134,6 +134,88 @@ async function getJSON<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface MarketQuote {
+  ticker: string;
+  name: string;
+  price: number;
+  change: number | null;
+  change_pct: number | null;
+  prev_close: number | null;
+  day_high: number | null;
+  day_low: number | null;
+  volume: number | null;
+  market_cap: number | null;
+  pe_ratio: number | null;
+  high_52w: number | null;
+  low_52w: number | null;
+  currency: string;
+  source: "yahoo" | "stooq" | null;
+  as_of: string;
+  delayed: boolean;
+  available: boolean;
+  spark?: number[];
+}
+
+export interface MarketOverview {
+  indices: MarketQuote[];
+  companies: MarketQuote[];
+  source: "yahoo" | "stooq" | null;
+  as_of: string;
+  delayed: boolean;
+  available: boolean;
+}
+
+export interface MarketHistory {
+  ticker: string;
+  range: string;
+  points: { date: string; close: number }[];
+  source: "yahoo" | "stooq" | null;
+  as_of: string;
+  available: boolean;
+}
+
+export interface TrendingItem {
+  ticker: string;
+  name: string;
+  price: number | null;
+  change_pct: number | null;
+}
+
+export interface MarketTrending {
+  trending: TrendingItem[];
+  source: string | null;
+  as_of: string;
+  available: boolean;
+}
+
+export interface FilingFigureRow {
+  fiscal_year: number;
+  revenue: number | null;
+  net_income: number | null;
+}
+
+export interface FilingFigures {
+  ticker: string;
+  rows: FilingFigureRow[];
+  available: boolean;
+  source: string;
+}
+
+export const fetchMarketOverview = () =>
+  getJSON<MarketOverview>("/api/market/overview");
+export const fetchMarketQuote = (ticker: string) =>
+  getJSON<MarketQuote>(`/api/market/quote?ticker=${encodeURIComponent(ticker)}`);
+export const fetchMarketHistory = (ticker: string, range: string) =>
+  getJSON<MarketHistory>(
+    `/api/market/history?ticker=${encodeURIComponent(ticker)}&range=${range}`,
+  );
+export const fetchMarketTrending = () =>
+  getJSON<MarketTrending>("/api/market/trending");
+export const fetchFilingFigures = (ticker: string) =>
+  getJSON<FilingFigures>(
+    `/api/market/filing-figures?ticker=${encodeURIComponent(ticker)}`,
+  );
+
 export const fetchCorpus = () => getJSON<CorpusResponse>("/api/corpus");
 export const fetchComparison = () =>
   getJSON<ComparisonResponse>("/api/results/comparison");

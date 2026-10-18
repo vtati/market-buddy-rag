@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EvidenceCard } from "@/components/evidence-card";
+import { MarketStrip } from "@/components/market-strip";
+import { CompanySnapshot } from "@/components/company-snapshot";
 import { PendingTrail, StepTrail } from "@/components/step-trail";
 import { Reveal } from "@/components/reveal";
 import { cn } from "@/lib/utils";
@@ -131,6 +133,7 @@ export default function ChatPage() {
   const [corpusChoice, setCorpusChoice] = useState("active");
   const [pendingStage, setPendingStage] = useState(0);
   const [corpus, setCorpus] = useState<CorpusResponse | null>(null);
+  const [focusTicker, setFocusTicker] = useState("AAPL");
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
@@ -192,6 +195,28 @@ export default function ChatPage() {
   const sessionCompanies = corpus?.session_companies ?? [];
   const teslaIngested = sessionCompanies.some((c) => c.ticker === "TSLA");
 
+  // Snapshot focus follows the conversation: the company behind the
+  // most recent cited answer (citation doc labels start with the
+  // ticker), or a corpus-panel click.
+  useEffect(() => {
+    if (!corpus) return;
+    const known = new Set(corpus.documents.map((d) => d.ticker));
+    const last = [...turns]
+      .reverse()
+      .find(
+        (t) =>
+          t.status === "done" &&
+          t.result &&
+          !t.result.refused &&
+          t.result.citations.length > 0,
+      );
+    if (!last?.result) return;
+    const candidate = last.result.citations[0].doc
+      .split(/[\s·]/)[0]
+      ?.toUpperCase();
+    if (candidate && known.has(candidate)) setFocusTicker(candidate);
+  }, [turns, corpus]);
+
   return (
     <div className="py-8 lg:py-10">
       <Reveal>
@@ -206,7 +231,11 @@ export default function ChatPage() {
         </p>
       </Reveal>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="mt-6">
+        <MarketStrip />
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* ——— Conversation column ——— */}
         <div className="min-w-0">
           <Reveal delay={0.08}>
@@ -423,7 +452,16 @@ export default function ChatPage() {
                       ]}
                     />
                     {corpus.documents.map((d) => (
-                      <div key={d.doc_id} className="flex items-baseline gap-2 text-[13px]">
+                      <button
+                        key={d.doc_id}
+                        type="button"
+                        onClick={() => setFocusTicker(d.ticker)}
+                        title={`Show the ${d.ticker} snapshot`}
+                        className={cn(
+                          "flex w-full cursor-pointer items-baseline gap-2 rounded px-1 py-0.5 text-left text-[13px] transition-colors duration-200 hover:bg-accent",
+                          focusTicker === d.ticker && "bg-primary/10",
+                        )}
+                      >
                         <span className="font-medium">{d.ticker}</span>
                         <span className="min-w-0 flex-1 truncate text-muted-foreground">
                           {d.label.replace(`${d.ticker} `, "")}
@@ -436,7 +474,7 @@ export default function ChatPage() {
                         <span className="tnum font-mono text-[11.5px] text-muted-foreground">
                           {(d.chars / 1000).toFixed(0)}k chars
                         </span>
-                      </div>
+                      </button>
                     ))}
                     <div className="space-y-1 border-t border-border pt-3 text-[12.5px] text-muted-foreground">
                       <p className="flex justify-between">
@@ -470,6 +508,10 @@ export default function ChatPage() {
                 )}
               </CardContent>
             </Card>
+          </Reveal>
+
+          <Reveal delay={0.3}>
+            <CompanySnapshot ticker={focusTicker} />
           </Reveal>
         </aside>
       </div>

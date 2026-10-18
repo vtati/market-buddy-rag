@@ -14,12 +14,15 @@ import {
 import {
   fetchCorpus,
   fetchIngestStatus,
+  fetchMarketTrending,
   resolveCompany,
   startIngest,
   type CorpusResponse,
   type IngestCandidate,
   type IngestStatus,
+  type MarketTrending,
 } from "@/lib/api";
+import { fmtPct } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,6 +63,7 @@ export default function IngestPage() {
   const [job, setJob] = useState<IngestStatus | null>(null);
   const [starting, setStarting] = useState<string | null>(null);
   const [corpus, setCorpus] = useState<CorpusResponse | null>(null);
+  const [trending, setTrending] = useState<MarketTrending | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refreshCorpus = () =>
@@ -67,6 +71,9 @@ export default function IngestPage() {
 
   useEffect(() => {
     refreshCorpus();
+    fetchMarketTrending()
+      .then((t) => setTrending(t.available ? t : null))
+      .catch(() => setTrending(null));
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -92,6 +99,20 @@ export default function IngestPage() {
       setResolving(false);
     }
   }
+
+  // Deep link: /ingest?ticker=XYZ prefills and resolves immediately
+  // (the trending rail on this page links here the same way).
+  const deepLinkRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkRef.current) return;
+    deepLinkRef.current = true;
+    const ticker = new URLSearchParams(window.location.search).get("ticker");
+    if (ticker) {
+      setQuery(ticker);
+      doResolve(ticker);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function doIngest(ticker: string) {
     if (starting) return;
@@ -151,6 +172,47 @@ export default function IngestPage() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-6">
+          {/* ——— Trending rail ——— */}
+          {trending && trending.trending.length > 0 && (
+            <Reveal delay={0.04}>
+              <div className="rounded-xl border border-border bg-card px-4 py-3.5">
+                <p className="text-[12px] font-medium tracking-wide text-muted-foreground">
+                  Trending on Yahoo Finance{" "}
+                  <span className="font-normal">· delayed — tap one to ingest its 10-K</span>
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {trending.trending.map((t) => (
+                    <button
+                      key={t.ticker}
+                      type="button"
+                      disabled={resolving}
+                      onClick={() => {
+                        setQuery(t.ticker);
+                        doResolve(t.ticker);
+                      }}
+                      className="min-h-[36px] cursor-pointer rounded-md border border-border px-3 py-1.5 text-[12.5px] transition-colors duration-200 hover:bg-accent disabled:opacity-50"
+                    >
+                      <span className="font-medium">{t.ticker}</span>{" "}
+                      <span className="text-muted-foreground">{t.name}</span>{" "}
+                      <span
+                        className={cn(
+                          "tnum",
+                          t.change_pct === null
+                            ? "text-muted-foreground"
+                            : t.change_pct >= 0
+                              ? "text-gain-text"
+                              : "text-loss-text",
+                        )}
+                      >
+                        {fmtPct(t.change_pct)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          )}
+
           {/* ——— Resolve ——— */}
           <Reveal delay={0.08}>
             <Card>
