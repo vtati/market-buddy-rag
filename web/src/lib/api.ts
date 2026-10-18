@@ -1,5 +1,8 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+// All API calls are same-origin: next.config.ts rewrites /api/* to the
+// API server (API_PROXY_TARGET, default http://localhost:8000). This
+// keeps the browser off cross-origin/CORS and off any third-party
+// hostname — the deployed site only ever talks to its own domain.
+export const API_BASE = "";
 
 export interface Citation {
   doc: string;
