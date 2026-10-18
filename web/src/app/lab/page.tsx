@@ -124,6 +124,11 @@ export default function LabPage() {
           rewards it landing first; latency is the mean per question on this
           machine. Gold marks the app&apos;s default configuration.
         </p>
+        <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-muted-foreground">
+          Measured on the bundled corpus (AAPL · MSFT · NVDA snapshot, Oct
+          2026). Session-ingested companies are not part of these
+          measurements.
+        </p>
         {data && (
           <p className="tnum mt-2 font-mono text-[12px] text-muted-foreground">
             Measured {new Date(data.generated_at).toLocaleString()} · embeddings{" "}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowUp, CircleAlert, HelpCircle, Landmark, Sparkles } from "lucide-react";
 import {
   fetchCorpus,
@@ -24,13 +25,20 @@ interface Turn {
   error?: string;
 }
 
-const SUGGESTIONS = [
-  { label: "Apple's FY2024 net sales", q: "What was Apple's total net sales in fiscal 2024?" },
-  { label: "Microsoft's risk factors", q: "What risk factors does Microsoft disclose about competition and cybersecurity threats?" },
-  { label: "Apple vs NVIDIA revenue", q: "Which company reported higher total revenue in its most recent fiscal year, Apple or NVIDIA, and what were the figures?" },
-  { label: "Tesla — outside the corpus", q: "What was Tesla's revenue in fiscal 2024?" },
-  { label: "“What are the risks?” — ambiguous", q: "What are the risks?" },
-];
+function suggestions(teslaIngested: boolean) {
+  return [
+    { label: "Apple's FY2024 net sales", q: "What was Apple's total net sales in fiscal 2024?" },
+    { label: "Microsoft's risk factors", q: "What risk factors does Microsoft disclose about competition and cybersecurity threats?" },
+    { label: "Apple vs NVIDIA revenue", q: "Which company reported higher total revenue in its most recent fiscal year, Apple or NVIDIA, and what were the figures?" },
+    {
+      label: teslaIngested
+        ? "Tesla's FY2024 revenue — ingested this session"
+        : "Tesla — outside the corpus",
+      q: "What was Tesla's revenue in fiscal 2024?",
+    },
+    { label: "“What are the risks?” — ambiguous", q: "What are the risks?" },
+  ];
+}
 
 function Segmented<T extends string>({
   label,
@@ -120,14 +128,18 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [strategy, setStrategy] = useState("section");
   const [mode, setMode] = useState("hybrid+rerank");
+  const [corpusChoice, setCorpusChoice] = useState("active");
   const [pendingStage, setPendingStage] = useState(0);
   const [corpus, setCorpus] = useState<CorpusResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
 
-  useEffect(() => {
+  const refreshCorpus = () =>
     fetchCorpus().then(setCorpus).catch(() => setCorpus(null));
+
+  useEffect(() => {
+    refreshCorpus();
   }, []);
 
   useEffect(() => {
@@ -152,7 +164,7 @@ export default function ChatPage() {
     setInput("");
     setBusy(true);
     try {
-      const result = await postChat(q, strategy, mode);
+      const result = await postChat(q, strategy, mode, corpusChoice);
       setTurns((t) =>
         t.map((turn) => (turn.id === id ? { ...turn, status: "done", result } : turn)),
       );
@@ -173,8 +185,12 @@ export default function ChatPage() {
       );
     } finally {
       setBusy(false);
+      refreshCorpus();
     }
   }
+
+  const sessionCompanies = corpus?.session_companies ?? [];
+  const teslaIngested = sessionCompanies.some((c) => c.ticker === "TSLA");
 
   return (
     <div className="py-8 lg:py-10">
@@ -348,7 +364,7 @@ export default function ChatPage() {
                 <CardTitle>Try asking</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-1.5">
-                {SUGGESTIONS.map((s) => (
+                {suggestions(teslaIngested).map((s) => (
                   <button
                     key={s.q}
                     type="button"
@@ -368,18 +384,55 @@ export default function ChatPage() {
               <CardHeader>
                 <CardTitle>Corpus</CardTitle>
                 <p className="text-[12.5px] text-muted-foreground">
-                  SEC EDGAR 10-K excerpts, cleaned and section-mapped.
+                  SEC EDGAR 10-K excerpts, cleaned and section-mapped. The
+                  bundled snapshot is frozen; companies added via{" "}
+                  <Link href="/ingest" className="text-accent-text underline underline-offset-2">
+                    Add a Company
+                  </Link>{" "}
+                  join the active corpus for this session.
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
                 {corpus ? (
                   <>
+                    <Segmented
+                      label="Search scope"
+                      value={corpusChoice}
+                      onChange={setCorpusChoice}
+                      options={[
+                        {
+                          value: "active",
+                          label: "Active corpus",
+                          hint:
+                            sessionCompanies.length > 0
+                              ? `Bundled snapshot + ${sessionCompanies
+                                  .map((c) => c.ticker)
+                                  .join(", ")} (session)`
+                              : "Bundled snapshot (no session companies yet)",
+                        },
+                        {
+                          value: "bundled",
+                          label: "Bundled only",
+                          hint: "AAPL · MSFT · NVDA snapshot — the measured corpus",
+                        },
+                        ...sessionCompanies.map((c) => ({
+                          value: c.ticker,
+                          label: `${c.name} only`,
+                          hint: `Session company · 10-K FY${c.fiscal_year}`,
+                        })),
+                      ]}
+                    />
                     {corpus.documents.map((d) => (
                       <div key={d.doc_id} className="flex items-baseline gap-2 text-[13px]">
                         <span className="font-medium">{d.ticker}</span>
                         <span className="min-w-0 flex-1 truncate text-muted-foreground">
                           {d.label.replace(`${d.ticker} `, "")}
                         </span>
+                        {d.source !== "bundled" && (
+                          <Badge variant="gold" className="shrink-0">
+                            session
+                          </Badge>
+                        )}
                         <span className="tnum font-mono text-[11.5px] text-muted-foreground">
                           {(d.chars / 1000).toFixed(0)}k chars
                         </span>
@@ -387,13 +440,21 @@ export default function ChatPage() {
                     ))}
                     <div className="space-y-1 border-t border-border pt-3 text-[12.5px] text-muted-foreground">
                       <p className="flex justify-between">
-                        <span>Fixed-size chunks</span>
+                        <span>Fixed-size chunks (bundled)</span>
                         <span className="tnum font-mono">{corpus.chunks.fixed}</span>
                       </p>
                       <p className="flex justify-between">
-                        <span>Section-aware chunks</span>
+                        <span>Section-aware chunks (bundled)</span>
                         <span className="tnum font-mono">{corpus.chunks.section}</span>
                       </p>
+                      {sessionCompanies.map((c) => (
+                        <p key={c.ticker} className="flex justify-between">
+                          <span>{c.ticker} chunks (session)</span>
+                          <span className="tnum font-mono">
+                            {c.chunks.fixed} fixed · {c.chunks.section} section
+                          </span>
+                        </p>
+                      ))}
                       <p className="flex justify-between">
                         <span>Generation</span>
                         <span>

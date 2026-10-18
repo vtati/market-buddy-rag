@@ -25,7 +25,10 @@ export interface ChatResponse {
   latency_ms: number;
   strategy: string;
   retrieval_mode: string;
+  corpus: string;
 }
+
+export type DocSource = "bundled" | "precached" | "live";
 
 export interface CorpusDoc {
   doc_id: string;
@@ -33,6 +36,23 @@ export interface CorpusDoc {
   label: string;
   chars: number;
   sections: string[];
+  source: DocSource;
+}
+
+export interface SessionCompany {
+  ticker: string;
+  name: string;
+  cik: string;
+  source: DocSource;
+  accession: string;
+  fiscal_year: number;
+  filed: string;
+  report_date: string;
+  doc_label: string;
+  items: string[];
+  chars: number;
+  chunks: { fixed: number; section: number };
+  figures_rows: number;
 }
 
 export interface CorpusResponse {
@@ -40,6 +60,28 @@ export interface CorpusResponse {
   total_chars: number;
   chunks: Record<string, number>;
   generation_mode: "llm" | "extractive";
+  session_companies: SessionCompany[];
+}
+
+export interface IngestCandidate {
+  ticker: string;
+  name: string;
+  cik: string;
+}
+
+export interface IngestStage {
+  name: string;
+  status: "pending" | "active" | "done" | "error";
+  detail: string;
+}
+
+export interface IngestStatus {
+  job_id: string;
+  ticker: string;
+  stage: string;
+  stages: IngestStage[];
+  result: SessionCompany | null;
+  error: string | null;
 }
 
 export interface ComparisonRow {
@@ -97,19 +139,33 @@ export const fetchComparison = () =>
   getJSON<ComparisonResponse>("/api/results/comparison");
 export const fetchEval = () => getJSON<EvalResponse>("/api/results/eval");
 
+async function postJSON<T>(path: string, payload: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail ?? `${path} failed: ${res.status}`);
+  }
+  return (await res.json()) as T;
+}
+
 export async function postChat(
   question: string,
   strategy: string,
   mode: string,
+  corpus: string = "active",
 ): Promise<ChatResponse> {
-  const res = await fetch(`${API_BASE}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, strategy, mode }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `chat failed: ${res.status}`);
-  }
-  return (await res.json()) as ChatResponse;
+  return postJSON<ChatResponse>("/api/chat", { question, strategy, mode, corpus });
 }
+
+export const resolveCompany = (query: string) =>
+  postJSON<{ candidates: IngestCandidate[] }>("/api/ingest/resolve", { query });
+
+export const startIngest = (ticker: string) =>
+  postJSON<{ job_id: string; ticker: string }>("/api/ingest", { ticker });
+
+export const fetchIngestStatus = (jobId: string) =>
+  getJSON<IngestStatus>(`/api/ingest/status/${jobId}`);

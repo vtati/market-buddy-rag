@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FlaskConical, Gauge, MessagesSquare } from "lucide-react";
+import { Building2, FlaskConical, Gauge, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Chat", icon: MessagesSquare },
+  { href: "/ingest", label: "Add a Company", icon: Building2 },
   { href: "/lab", label: "Chunking Lab", icon: FlaskConical },
   { href: "/eval", label: "Eval Dashboard", icon: Gauge },
 ];
