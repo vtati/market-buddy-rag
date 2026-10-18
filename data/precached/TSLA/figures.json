@@ -1,0 +1,342 @@
+[
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2009,
+  "period_end": "2009-12-31",
+  "value_usd": 111943000,
+  "accession": "0001193125-12-081990",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2009,
+  "period_end": "2009-12-31",
+  "value_usd": -55740000,
+  "accession": "0001193125-12-081990",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2010,
+  "period_end": "2010-12-31",
+  "value_usd": 116744000,
+  "accession": "0001193125-13-096241",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2010,
+  "period_end": "2010-12-31",
+  "value_usd": -154328000,
+  "accession": "0001193125-13-096241",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2011,
+  "period_end": "2011-12-31",
+  "value_usd": 204242000,
+  "accession": "0001193125-14-069681",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2011,
+  "period_end": "2011-12-31",
+  "value_usd": -254411000,
+  "accession": "0001193125-14-069681",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2012,
+  "period_end": "2012-12-31",
+  "value_usd": 413256000,
+  "accession": "0001564590-15-001031",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2012,
+  "period_end": "2012-12-31",
+  "value_usd": -396213000,
+  "accession": "0001564590-15-001031",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2013,
+  "period_end": "2013-12-31",
+  "value_usd": 2013496000,
+  "accession": "0001564590-16-013195",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2013,
+  "period_end": "2013-12-31",
+  "value_usd": -74014000,
+  "accession": "0001564590-16-013195",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2014,
+  "period_end": "2014-12-31",
+  "value_usd": 3198356000,
+  "accession": "0001564590-17-003118",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2014,
+  "period_end": "2014-12-31",
+  "value_usd": -294040000,
+  "accession": "0001564590-17-003118",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2015,
+  "period_end": "2015-12-31",
+  "value_usd": 4046025000,
+  "accession": "0001564590-18-002956",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2015,
+  "period_end": "2015-12-31",
+  "value_usd": -888663000,
+  "accession": "0001564590-18-002956",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2016,
+  "period_end": "2016-12-31",
+  "value_usd": 7000132000,
+  "accession": "0001564590-19-003165",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2016,
+  "period_end": "2016-12-31",
+  "value_usd": -674914000,
+  "accession": "0001564590-19-003165",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2017,
+  "period_end": "2017-12-31",
+  "value_usd": 11759000000,
+  "accession": "0001564590-20-004475",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2017,
+  "period_end": "2017-12-31",
+  "value_usd": -1962000000,
+  "accession": "0001564590-20-004475",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+  "fiscal_year": 2018,
+  "period_end": "2018-12-31",
+  "value_usd": 21461268000,
+  "accession": "0001564590-19-003165",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2018,
+  "period_end": "2018-12-31",
+  "value_usd": -976000000,
+  "accession": "0001564590-21-004599",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2019,
+  "period_end": "2019-12-31",
+  "value_usd": 24578000000,
+  "accession": "0000950170-22-000796",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2019,
+  "period_end": "2019-12-31",
+  "value_usd": -862000000,
+  "accession": "0000950170-22-000796",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "Revenues",
+  "fiscal_year": 2020,
+  "period_end": "2020-12-31",
+  "value_usd": 31536000000,
+  "accession": "0000950170-23-001409",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2020,
+  "period_end": "2020-12-31",
+  "value_usd": 721000000,
+  "accession": "0000950170-23-001409",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+  "fiscal_year": 2021,
+  "period_end": "2021-12-31",
+  "value_usd": 53823000000,
+  "accession": "0001628280-24-002390",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2021,
+  "period_end": "2021-12-31",
+  "value_usd": 5519000000,
+  "accession": "0001628280-24-002390",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+  "fiscal_year": 2022,
+  "period_end": "2022-12-31",
+  "value_usd": 81462000000,
+  "accession": "0001628280-25-003063",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2022,
+  "period_end": "2022-12-31",
+  "value_usd": 12556000000,
+  "accession": "0001628280-25-003063",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+  "fiscal_year": 2023,
+  "period_end": "2023-12-31",
+  "value_usd": 96773000000,
+  "accession": "0001628280-26-003952",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2023,
+  "period_end": "2023-12-31",
+  "value_usd": 14997000000,
+  "accession": "0001628280-26-003952",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+  "fiscal_year": 2024,
+  "period_end": "2024-12-31",
+  "value_usd": 97690000000,
+  "accession": "0001628280-26-003952",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2024,
+  "period_end": "2024-12-31",
+  "value_usd": 7091000000,
+  "accession": "0001628280-26-003952",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Total revenue",
+  "taxonomy_concept": "RevenueFromContractWithCustomerExcludingAssessedTax",
+  "fiscal_year": 2025,
+  "period_end": "2025-12-31",
+  "value_usd": 94827000000,
+  "accession": "0001628280-26-003952",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ },
+ {
+  "ticker": "TSLA",
+  "concept": "Net income",
+  "taxonomy_concept": "NetIncomeLoss",
+  "fiscal_year": 2025,
+  "period_end": "2025-12-31",
+  "value_usd": 3794000000,
+  "accession": "0001628280-26-003952",
+  "source": "SEC company facts (companyfacts_tsla.json)"
+ }
+]
