@@ -269,30 +269,46 @@ def _figure_sentence(state: GraphState) -> tuple[str, dict] | None:
         return None
     years = _YEAR_RE.findall(q)
     wants_income = "income" in q.lower()
-    for f in load_figures():
-        if years and str(f["fiscal_year"]) not in years:
-            continue
-        if wants_income != (f["concept"] == "Net income"):
-            continue
-        line = (f"{f['ticker']} reported {f['concept'].lower()} of "
-                f"${f['value_usd']:,} for fiscal year {f['fiscal_year']} "
-                f"(period ended {f['period_end']}).")
-        citation = {
-            "doc": "AAPL · SEC company facts",
-            "section": "Figures table",
-            "span": [0, 0],
-            "excerpt": figures_as_text([f]),
-            "score": 0.0,
-        }
-        return line, citation
-    return None
+    candidates = [
+        f for f in load_figures()
+        if wants_income == (f["concept"] == "Net income")
+        and (not years or str(f["fiscal_year"]) in years)
+    ]
+    if not candidates:
+        return None
+    # An explicit year in the question wins; otherwise the most recent
+    # fiscal year (never the oldest row in the table).
+    f = max(candidates, key=lambda c: c["fiscal_year"])
+    line = (f"{f['ticker']} reported {f['concept'].lower()} of "
+            f"${f['value_usd']:,} for fiscal year {f['fiscal_year']} "
+            f"(period ended {f['period_end']}).")
+    citation = {
+        "doc": "AAPL · SEC company facts",
+        "section": "Figures table",
+        "span": [0, 0],
+        "excerpt": figures_as_text([f]),
+        "score": 0.0,
+    }
+    return line, citation
 
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
+_COMPANY_ALIASES = {"apple": "AAPL", "aapl": "AAPL", "microsoft": "MSFT",
+                    "msft": "MSFT", "nvidia": "NVDA", "nvda": "NVDA"}
+
+
+def _mentioned_tickers(question: str) -> set[str]:
+    q = question.lower()
+    return {t for alias, t in _COMPANY_ALIASES.items() if alias in q}
 
 
 def _extractive_answer(state: GraphState) -> tuple[str, list[dict]]:
     results = state.get("results", [])[:4]
+    mentioned = _mentioned_tickers(state["question"])
+    if mentioned and any(r["ticker"] in mentioned for r in results):
+        # A question about one company must not be answered with another
+        # company's sentences (comparison questions name both, and keep both).
+        results = [r for r in results if r["ticker"] in mentioned] or results
     q_words = {w.lower() for w in re.findall(r"[a-z0-9]+", state["question"].lower())
                if w not in _STOPWORDS and len(w) > 2}
     asks_figure = bool(_FIGURE_TRIGGER.search(state["question"]))
