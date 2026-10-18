@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/* Obsidian & Champagne — token values copied from the Market Buddy
+   product design system (packages/ui tokens.json, dark theme is the
+   primary theme there and the only theme here). Gold is a sparing
+   accent: wordmark, key numbers, active states, citation highlights.
+   Green/red carry data semantics (pass/fail, gain/loss) only. */
+:root {
+  color-scheme: dark;
+  --background: #0b0e13;
+  --foreground: #e8e6df;
+  --card: #12161d;
+  --card-foreground: #e8e6df;
+  --popover: #171c25;
+  --popover-foreground: #e8e6df;
+  --primary: #c9a96a;
+  --primary-foreground: #131720;
+  --secondary: #171c25;
+  --secondary-foreground: #e8e6df;
+  --muted: #171c25;
+  --muted-foreground: #9ba1a8;
+  --accent: #171c25;
+  --accent-foreground: #e8e6df;
+  --destructive: #e5484d;
+  --destructive-foreground: #131720;
+  --ring: #c9a96a;
+  --gain: #4cc38a;
+  --loss: #e5484d;
+  --accent-bright: #e3c888;
+  --accent-text: #c9a96a;
+  --gain-text: #4cc38a;
+  --loss-text: #ea4d51;
+  --border: rgba(255, 255, 255, 0.07);
+  --input: rgba(255, 255, 255, 0.07);
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-accent-bright: var(--accent-bright);
+  --color-accent-text: var(--accent-text);
+  --color-gain-text: var(--gain-text);
+  --color-loss-text: var(--loss-text);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(201, 169, 106, 0.35);
+  color: #fff8e7;
+}
+
+/* Tabular numerals for every figure (FT-style data credibility). */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Custom scrollbar — thin, warm-neutral, gold on hover. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a3038 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a3038;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #c9a96a;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
