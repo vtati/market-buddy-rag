@@ -11,3 +11,4 @@ node_modules/
 web/.next/
 web/node_modules/
 ~/.cache/
+data/session/
