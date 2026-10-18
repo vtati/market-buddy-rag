@@ -215,9 +215,8 @@ def _edgar_get(url: str) -> bytes:
     return data
 
 
-def latest_10k_meta(ticker: str) -> dict:
-    """Most recent 10-K entry from the SEC submissions feed for a ticker."""
-    cik = TICKER_CIK[ticker]
+def latest_10k_meta_for(cik: str, ticker: str = "") -> dict:
+    """Most recent 10-K entry from the SEC submissions feed for a CIK."""
     subs = json.loads(_edgar_get(f"https://data.sec.gov/submissions/CIK{cik}.json"))
     recent = subs["filings"]["recent"]
     for i, form in enumerate(recent["form"]):
@@ -229,13 +228,19 @@ def latest_10k_meta(ticker: str) -> dict:
                 "filed": recent["filingDate"][i],
                 "report_date": recent["reportDate"][i],
             }
-    raise RuntimeError(f"no 10-K found for {ticker}")
+    raise RuntimeError(f"no 10-K found for {ticker or cik}")
 
 
-def fetch_filing_text(ticker: str, use_cache: bool = True) -> tuple[str, dict]:
-    """Download a ticker's latest 10-K and return (clean text, metadata)."""
-    meta = latest_10k_meta(ticker)
-    cik_int = int(TICKER_CIK[ticker])
+def latest_10k_meta(ticker: str) -> dict:
+    """Most recent 10-K entry from the SEC submissions feed for a ticker."""
+    return latest_10k_meta_for(TICKER_CIK[ticker], ticker)
+
+
+def fetch_filing_text_for(cik: str, ticker: str,
+                          use_cache: bool = True) -> tuple[str, dict]:
+    """Download the latest 10-K for a CIK and return (clean text, metadata)."""
+    meta = latest_10k_meta_for(cik, ticker)
+    cik_int = int(cik)
     acc_nodash = meta["accession"].replace("-", "")
     url = (
         f"https://www.sec.gov/Archives/edgar/data/{cik_int}/"
@@ -250,6 +255,56 @@ def fetch_filing_text(ticker: str, use_cache: bool = True) -> tuple[str, dict]:
         cache_path.write_text(raw, encoding="utf-8")
     meta["url"] = url
     return html_to_text(raw), meta
+
+
+def fetch_filing_text(ticker: str, use_cache: bool = True) -> tuple[str, dict]:
+    """Download a bundled ticker's latest 10-K (clean text, metadata)."""
+    return fetch_filing_text_for(TICKER_CIK[ticker], ticker, use_cache=use_cache)
+
+
+def fetch_company_facts(cik: str, ticker: str = "",
+                        use_cache: bool = True) -> dict:
+    """SEC company-facts payload for a CIK (cached under data/cache/)."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_path = CACHE_DIR / f"companyfacts_{ticker.lower() or cik}.json"
+    if use_cache and cache_path.exists():
+        return json.loads(cache_path.read_text(encoding="utf-8"))
+    payload = json.loads(_edgar_get(
+        f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"))
+    if use_cache:
+        cache_path.write_text(json.dumps(payload), encoding="utf-8")
+    return payload
+
+
+# Per-Item character caps used when slicing a full 10-K down to a
+# demo-sized excerpt — the same caps scripts/build_corpus.py applied
+# to the bundled fixtures (whole Items, truncated at a line boundary).
+ITEM_CAPS = {"1": 70_000, "1A": 90_000, "7": 130_000, "8": 70_000}
+DEFAULT_SLICE_ITEMS = ("1", "1A", "7", "8")
+
+
+def slice_items(text: str, items: tuple[str, ...] = DEFAULT_SLICE_ITEMS,
+                ) -> tuple[str, list[str]]:
+    """Slice whole Items out of a cleaned 10-K, capped per Item.
+
+    Returns (excerpt text, items actually found). The heading line of
+    each Item starts the slice, so find_item_sections/chunking keep
+    working on the excerpt exactly as on a full filing.
+    """
+    spans = find_item_sections(text)
+    parts: list[str] = []
+    found: list[str] = []
+    for item in items:
+        if item not in spans:
+            continue
+        start, end = spans[item]
+        body = text[start:end].strip()
+        cap = ITEM_CAPS.get(item, 80_000)
+        if len(body) > cap:
+            body = body[:cap].rsplit("\n", 1)[0]
+        parts.append(body)
+        found.append(item)
+    return "\n\n".join(parts), found
 
 
 # ---------------------------------------------------------------------------
@@ -353,11 +408,13 @@ def _annual_figures(facts: dict, concept: str) -> dict[int, dict]:
     return {date.fromisoformat(end).year: row for end, row in by_period.items()}
 
 
-def load_figures(path: Path | None = None) -> list[dict]:
-    """Structured AAPL figures: revenue + net income per fiscal year."""
-    path = path or (DATA_DIR / "companyfacts_aapl.json")
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    facts = payload.get("facts", {})
+def figures_from_facts(facts: dict, ticker: str, source: str) -> list[dict]:
+    """Revenue + net income per fiscal year from a company-facts payload.
+
+    The fiscal-year label is the calendar year of the period end (see
+    :func:`_annual_figures` for why ``fy`` can't be trusted) — right
+    for September (AAPL) and December (TSLA) year-ends alike.
+    """
     revenue: dict[int, dict] = {}
     for concept in _REVENUE_CONCEPTS:
         for fy, row in _annual_figures(facts, concept).items():
@@ -370,28 +427,36 @@ def load_figures(path: Path | None = None) -> list[dict]:
         if fy in revenue:
             r = revenue[fy]
             figures.append({
-                "ticker": "AAPL",
+                "ticker": ticker,
                 "concept": "Total revenue",
                 "taxonomy_concept": r["concept"],
                 "fiscal_year": fy,
                 "period_end": r["end"],
                 "value_usd": int(r["val"]),
                 "accession": r["accn"],
-                "source": "SEC company facts (companyfacts_aapl.json)",
+                "source": source,
             })
         if fy in net_income:
             n = net_income[fy]
             figures.append({
-                "ticker": "AAPL",
+                "ticker": ticker,
                 "concept": "Net income",
                 "taxonomy_concept": _NET_INCOME_CONCEPT,
                 "fiscal_year": fy,
                 "period_end": n["end"],
                 "value_usd": int(n["val"]),
                 "accession": n["accn"],
-                "source": "SEC company facts (companyfacts_aapl.json)",
+                "source": source,
             })
     return figures
+
+
+def load_figures(path: Path | None = None, ticker: str = "AAPL") -> list[dict]:
+    """Structured figures for a bundled company (AAPL by default)."""
+    path = path or (DATA_DIR / "companyfacts_aapl.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return figures_from_facts(payload.get("facts", {}), ticker,
+                              f"SEC company facts ({path.name})")
 
 
 def figures_as_text(figures: list[dict]) -> str:
