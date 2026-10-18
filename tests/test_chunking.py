@@ -22,8 +22,17 @@ def test_section_chunks_never_cross_item_boundaries(docs):
         assert chunks, doc.metadata["doc_label"]
         for chunk in chunks:
             start, end = chunk.metadata["char_start"], chunk.metadata["char_end"]
-            # Chunk text is exactly the source slice it claims to be.
-            assert doc.page_content[start:end] == chunk.page_content
+            # The claimed span covers the chunk: every paragraph in the
+            # chunk appears verbatim inside the source range (a packed
+            # chunk re-joins paragraphs with "\n\n", so the range is a
+            # covering span, not always a byte-exact slice).
+            source_range = doc.page_content[start:end]
+            for part in chunk.page_content.split("\n\n"):
+                assert part in source_range, (
+                    f"{doc.metadata['doc_label']} chunk "
+                    f"{chunk.metadata['chunk_index']}: paragraph not inside "
+                    f"its claimed span [{start}:{end}]"
+                )
             # ...and that slice lies inside exactly one Item section.
             containing = [s for s in spans if s[0] <= start and end <= s[1]]
             assert len(containing) == 1, (

@@ -103,12 +103,17 @@ def chunk_section(doc: Document) -> list[Document]:
     )
     chunks: list[Document] = []
 
-    def emit(content: str, section: str, start: int) -> None:
+    def emit(content: str, section: str, start: int, end: int | None = None) -> None:
         meta = {
             **_base_meta(doc),
             "section": section,
             "char_start": start,
-            "char_end": start + len(content),
+            # The span is the minimal source range covering the chunk:
+            # first paragraph start -> last paragraph end. (A packed
+            # chunk re-joins paragraphs with "\n\n", so its text is not
+            # always a byte-exact slice of that range — the original
+            # separators live inside it.)
+            "char_end": end if end is not None else start + len(content),
             "chunk_index": len(chunks),
             "strategy": "section",
         }
@@ -117,13 +122,14 @@ def chunk_section(doc: Document) -> list[Document]:
     for item, (sec_start, sec_end) in sorted(sections.items(), key=lambda kv: kv[1][0]):
         section_label = f"Item {item}" if item != "—" else "Full text"
         section_text = text[sec_start:sec_end]
-        packed: list[tuple[int, str]] = []  # (abs start, text)
+        packed: list[tuple[int, int, str]] = []  # (abs start, abs end, text)
         packed_len = 0
 
         def flush() -> None:
             nonlocal packed, packed_len
             if packed:
-                emit("\n\n".join(t for _, t in packed), section_label, packed[0][0])
+                emit("\n\n".join(t for _, _, t in packed), section_label,
+                     packed[0][0], packed[-1][1])
             packed, packed_len = [], 0
 
         for p_start, p_end in _paragraph_spans(section_text):
@@ -138,7 +144,7 @@ def chunk_section(doc: Document) -> list[Document]:
             added = len(para) + (2 if packed else 0)
             if packed and packed_len + added > SECTION_MAX_CHARS:
                 flush()
-            packed.append((abs_start, para))
+            packed.append((abs_start, sec_start + p_end, para))
             packed_len += len(para) + (2 if packed_len else 0)
         flush()
     return chunks
