@@ -277,3 +277,69 @@ with boundaries recomputed independently from the source text.
   sentence-level composition handles poorly (the E11 soft spot in the
   evaluation report). Table-aware chunking — keeping a table's header
   row attached to its data rows — is the clearest next iteration.
+
+## (f) Addendum — live ingestion ("Add a Company")
+
+*Added after the measured build above; nothing in sections (a)–(e)
+was rewritten. The comparison and evaluation numbers in this
+document describe the bundled corpus only — this addendum is the
+feature that keeps them honest while the corpus grows.*
+
+**What it is.** A user can point the system at any SEC-listed
+company (Chat sidebar → "Add a Company", or `POST /api/ingest`).
+The company's latest 10-K is fetched from EDGAR and run through the
+*same* pipeline that built the bundled corpus — same cleaning, same
+whole-Item slicing caps (Items 1/1A/7/8 at 70k/90k/130k/70k chars),
+both chunking strategies, bge-small embeddings + FAISS/BM25, and a
+figures table built from its company-facts payload by the same
+period-end grouping code as AAPL's (the AAPL path is now the
+generalized `figures_from_facts`; AAPL's table is byte-identical and
+its regression test still passes). The pipeline runs as a
+background job with seven recorded stages — resolve → fetch →
+clean → chunk → embed → figures → ready — and the UI polls them
+live, because a pipeline you can watch fail honestly beats a spinner.
+
+**The registry design.** The interesting problem was not fetching —
+it was that "the corpus" was hardcoded in four places (scope
+aliases, refusal copy, retrieval targeting, the figures table) and
+each had silently assumed three companies forever. They now all
+read one registry (`src/registry.py`) with two tiers:
+
+- **Bundled** — the frozen AAPL/MSFT/NVDA snapshot. Immutable at
+  runtime; its FAISS indexes persist on disk.
+- **Session** — companies ingested at runtime, persisted under
+  `data/session/<TICKER>/` (sliced filing + figures + meta), so a
+  restart keeps them.
+
+A company is in-corpus iff bundled *or* registered. Scope reads the
+registry's alias map (bundled names plus every registered company's
+name/ticker), refusal and clarification copy is composed from the
+registry's coverage list, and retrieval targets a corpus selector —
+`active` (bundled + session), `bundled`, or a single ticker. Two
+engineering details mattered: the active index *extends* the
+bundled snapshot's persisted FAISS vectors and embeds only the new
+company's chunks (re-embedding 527k chars per ingestion is minutes
+of CPU), and embedding is batched at 32 chunks — a one-shot
+`embed_documents` over a whole filing spikes memory hard enough to
+get the process OOM-killed on a small host (measured; the batched
+peak is ~1.3 GB).
+
+**Tesla is precached, deliberately.** `data/precached/TSLA/` is
+the committed output of one real run of this pipeline (FY2025 10-K,
+accession 0001628280-26-003952), so the demo's signature arc —
+"Tesla's revenue?" refuses → ingest Tesla → the same question
+returns $97,690,000,000 for FY2024 with citations — never depends
+on SEC latency or uptime. It is a cache of the pipeline, not a
+different pipeline: stages still run and report, and the result is
+labelled `precached`. Any other ticker goes live to EDGAR.
+
+**Honesty labels.** Session companies are visibly second-class
+citizens in exactly the right way: tagged "session" in the corpus
+panel, selectable but never silent in chat, and excluded from every
+measurement. The Chunking Lab and Eval Dashboard both carry the
+label verbatim: "Measured on the bundled corpus (AAPL · MSFT ·
+NVDA snapshot, Oct 2026). Session-ingested companies are not part
+of these measurements." The eval harness itself is pinned to
+`corpus="bundled"` in code, and a test asserts the Tesla question
+still refuses under that pin after ingestion — the measurements
+can't drift even if the demo state does.

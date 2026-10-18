@@ -36,8 +36,14 @@ there.
   `NEBIUS_API_KEY` set, an LLM writes the answer; with no key, an
   extractive composer assembles it from the filings' own sentences.
   The demo runs end-to-end with **zero keys**.
+- **Add a Company (live ingestion):** any SEC-listed company can be
+  ingested at runtime — resolve the name/ticker, fetch its latest 10-K
+  from EDGAR, slice/chunk/embed it with the same pipeline, build its
+  figures table — and the chat answers from it immediately, in a
+  session corpus layered over the bundled snapshot (see below).
 - **A premium web UI** (Next.js 15 + FastAPI): chat with a live step
-  trail and expandable evidence cards, a Chunking Lab with the measured
+  trail and expandable evidence cards, an Add a Company page with a
+  live pipeline visualizer, a Chunking Lab with the measured
   comparison, and an Eval Dashboard with the 15-question results.
 
 ## Architecture
@@ -47,6 +53,7 @@ flowchart TB
     subgraph ingest["Ingestion — src/ingest.py"]
         EDGAR["SEC EDGAR (live fetch, cached)"] --> TXT["Clean text + Item section map"]
         FACTS["SEC company facts JSON"] --> FIG["Figures table (AAPL revenue / net income by FY)"]
+        EDGAR --> SES["Session ingest, any ticker — src/session_ingest.py + src/registry.py"]
     end
     subgraph index["Chunk + index — src/chunking.py · src/retrieval.py"]
         TXT --> CH1["fixed: 1,000/200 splitter — 856 chunks"]
@@ -67,12 +74,73 @@ flowchart TB
         VER -- fail, twice --> REF
         VER -- ok --> OUT["Answer + citations + step trace"]
     end
+    SES --> CH1
+    SES --> CH2
+    SES --> FIG
     IDX --> RET
     FIG --> GEN
     FIG --> VER
     graph --> API["FastAPI — src/api.py"]
-    API --> WEB["Next.js UI — web/ (Chat · Chunking Lab · Eval Dashboard)"]
+    API --> WEB["Next.js UI — web/ (Chat · Add a Company · Chunking Lab · Eval Dashboard)"]
 ```
+
+## Add a Company — live ingestion
+
+The bundled corpus is a frozen snapshot. **Add a Company** (the
+`/ingest` page, or the API below) runs the *same* pipeline for any
+SEC-listed company, live, in seven recorded stages:
+
+`resolve → fetch → clean → chunk → embed → figures → ready`
+
+1. **Resolve** — a name or ticker is matched against the SEC's
+   `company_tickers.json` map (`src/edgar.py`; cached, declared UA,
+   fair-access pacing) and confirmed by CIK.
+2. **Fetch** — the company's latest Form 10-K via the EDGAR
+   submissions API + Archives.
+3. **Clean** — HTML → text, then whole-Item slicing (Items 1, 1A, 7, 8)
+   with the *same per-item char caps* as the bundled corpus.
+4. **Chunk** — both strategies; counts are reported per strategy.
+5. **Embed** — bge-small embeddings; the active corpus's FAISS index
+   *extends* the bundled snapshot's persisted vectors, embedding only
+   the new company's chunks (batched — one-shot batch embedding of a
+   whole filing is a memory spike, not a shortcut).
+6. **Figures** — the company's SEC company-facts payload reduced to
+   revenue + net income by fiscal year with the same period-end
+   grouping as the AAPL table (`figures_from_facts` — the AAPL code
+   path is the generalized one; AAPL output is unchanged).
+7. **Ready** — the company registers in the corpus registry
+   (`src/registry.py`), persisted under `data/session/<TICKER>/`, so a
+   server restart keeps it.
+
+**Session vs bundled.** The registry is the single source of truth
+for what the chat may answer about: the graph's scope node, company
+alias detection, refusal copy ("my corpus covers…"), retrieval
+targeting, and the figures table all read it dynamically — a company
+is in-corpus iff it is bundled *or* registered, and the moment Tesla
+registers, "What was Tesla's revenue in fiscal 2024?" goes from an
+honest refusal to a cited answer. Chat accepts a corpus selector —
+`active` (bundled + session, the default), `bundled`, or one ticker.
+The measured artifacts never move: the comparison experiment and the
+15-question evaluation are pinned to the bundled corpus, and the Lab
+and Eval pages say so ("Measured on the bundled corpus (AAPL · MSFT ·
+NVDA snapshot, Oct 2026). Session-ingested companies are not part of
+these measurements.").
+
+**Tesla pre-cache.** `data/precached/TSLA/` holds the output of one
+real run of this pipeline (FY2025 10-K, accession
+0001628280-26-003952, sliced to the same caps; provenance note in the
+folder), so `POST /api/ingest {"ticker": "TSLA"}` completes with zero
+network — the refusal → ingest → answer demo arc never depends on
+SEC latency. Every other ticker goes live to EDGAR. Rebuild with
+`.venv/bin/python scripts/precache_company.py TSLA`.
+
+**API** — `POST /api/ingest/resolve {query}` → candidates;
+`POST /api/ingest {ticker}` → `{job_id}` (background job);
+`GET /api/ingest/status/{job_id}` → stage-by-stage progress + result
+(accession, items, chars, chunk counts, figures rows);
+`GET /api/corpus` lists bundled documents plus session companies
+with their source (`bundled` · `precached` · `live`);
+`POST /api/chat` accepts `corpus: "active" | "bundled" | "<TICKER>"`.
 
 ## Measured results (real runs, committed under `results/`)
 
@@ -104,9 +172,11 @@ extractive mode on local CPU. The first measured run passed 8/15; the
 failure analysis and the mechanism-level fixes are documented in
 `docs/project-documentation.md`.
 
-**Tests** — 12 pytest tests (chunking invariants, figures-table
+**Tests** — 16 pytest tests (chunking invariants, figures-table
 values, retrieval determinism, graph refusal/clarification/answer
-paths), all passing: `python -m pytest tests/ -q`.
+paths, plus ticker resolution, precache ingest, and the dynamic
+refuse → ingest → answer scope arc), all passing:
+`python -m pytest tests/ -q`.
 
 ## Setup
 
@@ -161,6 +231,9 @@ Never commit a key — this repo's history is clean of secrets.
 
 ```
 src/ingest.py       EDGAR ingestion, HTML cleaning, figures table
+src/edgar.py        SEC company-map ticker resolution
+src/registry.py     corpus registry (bundled + session tiers)
+src/session_ingest.py  live ingest pipeline + job records
 src/chunking.py     fixed vs section-aware chunking
 src/retrieval.py    FAISS + BM25, RRF fusion, cross-encoder rerank
 src/experiments.py  chunking x retrieval comparison experiment
@@ -168,8 +241,10 @@ src/graph.py        LangGraph Q&A app (scope/retrieve/grade/rewrite/generate/ver
 src/evaluate.py     15-question evaluation harness
 src/questions.py    gold question sets
 src/api.py          FastAPI backend for the web UI
-web/                Next.js 15 UI (Chat, Chunking Lab, Eval Dashboard)
+web/                Next.js 15 UI (Chat, Add a Company, Chunking Lab, Eval Dashboard)
 data/               bundled corpus fixtures + provenance notes
+data/precached/     committed pipeline output for TSLA (zero-network ingest)
+data/session/       runtime-ingested companies (persisted registrations)
 results/            measured outputs (comparison.json, eval.json)
 docs/               framework.md, comparison.md, evaluation-report.md, project-documentation.md
 tests/              pytest suite
