@@ -101,19 +101,34 @@ class StrategyIndex:
             self.faiss.save_local(str(index_path))
 
     # -- candidate pools ----------------------------------------------------
-    def vector_pool(self, query: str, n: int = POOL_SIZE) -> list[tuple[Document, float]]:
-        hits = self.faiss.similarity_search_with_score(query, k=n)
-        return [(doc, 1.0 / (1.0 + float(dist))) for doc, dist in hits]
+    def vector_pool(self, query: str, n: int = POOL_SIZE,
+                    tickers: set[str] | None = None) -> list[tuple[Document, float]]:
+        fetch = n * 4 if tickers else n
+        hits = self.faiss.similarity_search_with_score(query, k=fetch)
+        pool = [(doc, 1.0 / (1.0 + float(dist))) for doc, dist in hits]
+        if tickers:
+            pool = [p for p in pool if p[0].metadata.get("ticker") in tickers]
+        return pool[:n]
 
-    def bm25_pool(self, query: str, n: int = POOL_SIZE) -> list[tuple[Document, float]]:
-        docs = self.bm25.invoke(query)[:n]
+    def bm25_pool(self, query: str, n: int = POOL_SIZE,
+                  tickers: set[str] | None = None) -> list[tuple[Document, float]]:
+        if tickers:
+            self.bm25.k = n * 4
+            try:
+                docs = self.bm25.invoke(query)
+            finally:
+                self.bm25.k = POOL_SIZE
+            docs = [d for d in docs if d.metadata.get("ticker") in tickers][:n]
+        else:
+            docs = self.bm25.invoke(query)[:n]
         # BM25Retriever does not surface scores; rank is what RRF consumes.
         return [(doc, float(POOL_SIZE - i)) for i, doc in enumerate(docs)]
 
     # -- modes ----------------------------------------------------------------
-    def search(self, query: str, mode: str = "hybrid+rerank", k: int = 4) -> list[dict]:
+    def search(self, query: str, mode: str = "hybrid+rerank", k: int = 4,
+               tickers: set[str] | None = None) -> list[dict]:
         if mode == "vector":
-            pool = self.vector_pool(query, n=max(k, POOL_SIZE))[:k]
+            pool = self.vector_pool(query, n=max(k, POOL_SIZE), tickers=tickers)[:k]
             return [
                 {"chunk": doc, "score": score, "rank": i + 1, "signals": {"vector": score}}
                 for i, (doc, score) in enumerate(pool)
@@ -123,7 +138,8 @@ class StrategyIndex:
             raise ValueError(f"unknown mode {mode!r}; expected one of {MODES}")
 
         fused: dict[tuple, dict] = {}
-        for source, pool in (("bm25", self.bm25_pool(query)), ("vector", self.vector_pool(query))):
+        for source, pool in (("bm25", self.bm25_pool(query, tickers=tickers)),
+                             ("vector", self.vector_pool(query, tickers=tickers))):
             for rank, (doc, _score) in enumerate(pool, start=1):
                 key = _chunk_key(doc)
                 entry = fused.setdefault(key, {"chunk": doc, "rrf": 0.0, "signals": {}})
@@ -168,11 +184,15 @@ def get_index(strategy: str) -> StrategyIndex:
 
 
 def search(query: str, strategy: str = "section", mode: str = "hybrid+rerank",
-           k: int = 4) -> dict:
-    """Search one strategy's index. Returns results + measured latency."""
+           k: int = 4, tickers: set[str] | None = None) -> dict:
+    """Search one strategy's index. Returns results + measured latency.
+
+    ``tickers`` restricts every candidate pool to those companies —
+    used for per-company retrieval on comparison questions.
+    """
     index = get_index(strategy)
     started = time.perf_counter()
-    results = index.search(query, mode=mode, k=k)
+    results = index.search(query, mode=mode, k=k, tickers=tickers)
     latency_ms = (time.perf_counter() - started) * 1000.0
     return {"results": results, "latency_ms": round(latency_ms, 1),
             "strategy": strategy, "mode": mode}

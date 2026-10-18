@@ -1,0 +1,716 @@
+{
+  "generated_at": "2026-10-18T19:04:12.952378+00:00",
+  "mode": "extractive (no LLM key configured)",
+  "total": 15,
+  "passed": 15,
+  "pass_rate": 1.0,
+  "faithfulness_rate_answered": 1.0,
+  "mean_latency_ms": 3040.2,
+  "rows": [
+    {
+      "id": "E1",
+      "type": "answerable",
+      "question": "What was Apple's total net sales in fiscal 2024?",
+      "expected": "Answer with the FY2024 net-sales figure, cited to Item 7/8 or the figures table.",
+      "refused": false,
+      "answer": "AAPL reported total revenue of $391,035,000,000 for fiscal year 2024 (period ended 2024-09-28). [AAPL \u00b7 SEC company facts]\n\nTotal net sales $ 391,035 2 % $ 383,285 (3) % $ 394,328 [AAPL 10-K FY2024 \u00b7 Item 7]\n\niPhone net sales were relatively flat during 2024 compared to 2023. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nMac net sales increased during 2024 compared to 2023 due primarily to higher net sales of laptops. [AAPL 10-K FY2024 \u00b7 Item 7]\n\niPad net sales decreased during 2024 compared to 2023 due primarily to lower net sales of iPad Pro and the entry-level iPad models, partially offset by higher net sales of iPad Air. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nWearables, Home and Accessories net sales decreased during 2024 compared to 2023 due primarily to lower net sales of Wearables and Accessories. [AAPL 10-K FY2024 \u00b7 Item 7]",
+      "citations": [
+        {
+          "doc": "AAPL \u00b7 SEC company facts",
+          "section": "Figures table"
+        },
+        {
+          "doc": "AAPL 10-K FY2024",
+          "section": "Item 7"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 3924.4,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.599"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 2623.1,
+          "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 6.09, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 5.0,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 7.2,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 6579.1,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E2",
+      "type": "answerable",
+      "question": "How much net income did Apple report for fiscal 2024?",
+      "expected": "Answer with the FY2024 net-income figure, cited.",
+      "refused": false,
+      "answer": "AAPL reported net income of $93,736,000,000 for fiscal year 2024 (period ended 2024-09-28). [AAPL \u00b7 SEC company facts]\n\nThe following table shows net sales by reportable segment for 2024, 2023 and 2022 (dollars in millions): [AAPL 10-K FY2024 \u00b7 Item 7]\n\nDiscussions of 2022 items and year-to-year comparisons between 2023 and 2022 are not included, and can be found in \u201cManagement\u2019s Discussion and Analysis of Financial Condition and Results of Operations\u201d in Part II, Item 7 of the Company\u2019s Annual Report on Form 10-K for the fiscal year ended September 30, 2023. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nSignificant announcements during fiscal year 2024 included the following: [AAPL 10-K FY2024 \u00b7 Item 7]\n\nThe Company\u2019s fiscal years 2024 and 2022 spanned 52 weeks each, whereas fiscal year 2023 spanned 53 weeks. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nAmericas net sales increased during 2024 compared to 2023 due primarily to higher net sales of Services. [AAPL 10-K FY2024 \u00b7 Item 7]",
+      "citations": [
+        {
+          "doc": "AAPL \u00b7 SEC company facts",
+          "section": "Figures table"
+        },
+        {
+          "doc": "AAPL 10-K FY2024",
+          "section": "Item 7"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1264.6,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 1.974"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 1644.0,
+          "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 5.24, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 30.5,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 9.7,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 2957.4,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E3",
+      "type": "answerable",
+      "question": "What are Apple's principal risk factors around supply chain concentration and manufacturing outsourcing?",
+      "expected": "Answer drawn from Apple's Item 1A risk factors.",
+      "refused": false,
+      "answer": "In addition, the Company\u2019s global supply chain is large and complex and a majority of the Company\u2019s supplier facilities, including manufacturing and assembly sites, are located outside the U.S. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nChanges or additions to the Company\u2019s supply chain require considerable time and resources and involve significant risks and uncertainties, including exposure to additional regulatory and operational risks. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nSuccess also relies on the Company\u2019s ability to manage the risks associated with new technologies and production ramp-up issues, the effective integration of third-party services and technologies into the Company\u2019s products and services, the availability, delivery and performance of application software or other third-party support for the Company\u2019s products and services, the effective management of manufacturing and other purchase commitments and the management of inventory levels in line with anticipated product demand, and the availability of products in appropriate quantities and at expected costs to meet anticipated demand. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nThe Company depends on component and product manufacturing and logistical services provided by outsourcing partners, many of which are located outside of the U.S. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nA significant majority of the Company\u2019s manufacturing is performed in whole or in part by outsourcing partners located primarily in China mainland, India, Japan, South Korea, Taiwan and Vietnam, in addition to sourcing from partners and facilities located in the U.S. [AAPL 10-K FY2025 \u00b7 Item 1A]",
+      "citations": [
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1A"
+        },
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1A"
+        },
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1A"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1234.5,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score -2.121"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 653.6,
+          "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -2.80, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 7.6,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 6.4,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 1908.3,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E4",
+      "type": "answerable",
+      "question": "How does Apple describe its business and its main products and services?",
+      "expected": "Answer drawn from Apple's Item 1 business description.",
+      "refused": false,
+      "answer": "The Company also employs a variety of indirect distribution channels, such as third-party cellular network carriers and other resellers, for the sale of its products and certain of its services. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe markets for the Company\u2019s products and services are highly competitive and are characterized by aggressive price competition, downward pressure on gross margins, continual improvement in product performance, and price sensitivity on the part of consumers and businesses. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe Company designs and develops nearly the entire solution for its products, including the hardware, operating system, numerous software applications and related services. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe Company offers a portfolio of fee-based service and support products under the AppleCare\u00ae brand. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe offerings provide priority access to Apple technical support, access to the global Apple authorized service network for repair and replacement services, and in many cases additional coverage for instances of accidental damage or theft and loss, depending on the country and type of product. [AAPL 10-K FY2025 \u00b7 Item 1]",
+      "citations": [
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1"
+        },
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1917.1,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.439"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 1705.9,
+          "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 4.47, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 6.3,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 5.7,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 3658.5,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E5",
+      "type": "answerable",
+      "question": "What are Microsoft's main business segments and what does the Intelligent Cloud segment include?",
+      "expected": "Answer drawn from Microsoft's Item 1.",
+      "refused": false,
+      "answer": "We operate our business and report our financial performance using three segments: Productivity and Business Processes, Intelligent Cloud, and More Personal Computing. [MSFT 10-K FY2026 \u00b7 Item 1]\n\nMetrics related to our Productivity and Business Processes and Intelligent Cloud segments assess the health of our core businesses within these segments. [MSFT 10-K FY2026 \u00b7 Item 7]\n\nOur segments provide management with a comprehensive financial view of our key businesses. [MSFT 10-K FY2026 \u00b7 Item 1]\n\nThe segments enable the alignment of strategies and objectives across the development, sales, marketing, and services organizations, and they provide a framework for timely and rational allocation of resources within businesses. [MSFT 10-K FY2026 \u00b7 Item 1]\n\nOur Productivity and Business Processes segment consists of products and services in our portfolio of productivity, communication, and information services, spanning a variety of devices and platforms. [MSFT 10-K FY2026 \u00b7 Item 1]",
+      "citations": [
+        {
+          "doc": "MSFT 10-K FY2026",
+          "section": "Item 1"
+        },
+        {
+          "doc": "MSFT 10-K FY2026",
+          "section": "Item 7"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1347.5,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.324"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 914.5,
+          "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best 4.85, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 7.3,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 5.7,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 2282.6,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E6",
+      "type": "answerable",
+      "question": "What risk factors does Microsoft disclose about competition and cybersecurity threats?",
+      "expected": "Answer drawn from Microsoft's Item 1A.",
+      "refused": false,
+      "answer": "STRATEGIC AND COMPETITIVE RISKS [MSFT 10-K FY2026 \u00b7 Item 1A]\n\nFor a description of the risks we face related to regulatory matters, refer to Risk Factors (Part I, Item 1A of this Form 10-K). [MSFT 10-K FY2026 \u00b7 Item 1]\n\nOur operations and financial results are subject to various risks and uncertainties, including those described below, that could adversely affect our business, operations, financial condition, results of operations, liquidity, and the trading price of our common stock. [MSFT 10-K FY2026 \u00b7 Item 1A]\n\nWe face intense competition across all markets for our products and services, which could adversely affect our results of operations. [MSFT 10-K FY2026 \u00b7 Item 1A]\n\nCompetition in the technology sector [MSFT 10-K FY2026 \u00b7 Item 1A]",
+      "citations": [
+        {
+          "doc": "MSFT 10-K FY2026",
+          "section": "Item 1A"
+        },
+        {
+          "doc": "MSFT 10-K FY2026",
+          "section": "Item 1"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1309.3,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score -1.391"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 1032.9,
+          "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best -3.14, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 6.0,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 5.7,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 2360.2,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E7",
+      "type": "answerable",
+      "question": "How did Microsoft's revenue and operating income perform in the most recent fiscal year, according to management's discussion?",
+      "expected": "Answer drawn from Microsoft's Item 7 MD&A.",
+      "refused": false,
+      "answer": "For a discussion of the year ended June 30, 2025 compared to the year ended June 30, 2024, please refer to Part II, Item 7, \u201cManagement\u2019s Discussion and Analysis of Financial Condition and Results of Operations\u201d in our Annual Report on Form 10-K for the year ended June 30, 2025. [MSFT 10-K FY2026 \u00b7 Item 7]\n\nThis section generally discusses the results of our operations for the year ended June 30, 2026 compared to the year ended June 30, 2025. [MSFT 10-K FY2026 \u00b7 Item 7]\n\nThe following Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations (\u201cMD&A\u201d) is intended to help the reader understand the results of operations and financial condition of Microsoft Corporation. [MSFT 10-K FY2026 \u00b7 Item 7]\n\nRevenue, gross margin, and operating income included a favorable foreign currency impact of 2%, 3%, and 3%, respectively. [MSFT 10-K FY2026 \u00b7 Item 7]\n\nXBOX content and services revenue decreased 5% on a prior year comparable that benefited from strong first-party content performance, offset in part by growth in XBOX Game Pass. [MSFT 10-K FY2026 \u00b7 Item 7]",
+      "citations": [
+        {
+          "doc": "MSFT 10-K FY2026",
+          "section": "Item 7"
+        },
+        {
+          "doc": "MSFT 10-K FY2026",
+          "section": "Item 7"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1477.9,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.661"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 1074.5,
+          "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best 2.79, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 32.2,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 6.3,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 2598.8,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E8",
+      "type": "answerable",
+      "question": "What does NVIDIA say about its compute and networking platforms and the markets it serves?",
+      "expected": "Answer drawn from NVIDIA's Item 1.",
+      "refused": false,
+      "answer": "NVIDIA has a platform strategy, bringing together hardware, systems, software, algorithms, libraries, AI models and training data sets, and services to create unique value for the markets we serve. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThe NVIDIA Data Center platform is focused on accelerating compute-intensive workloads, such as AI, data processing, graphics, robotics, and scientific computing, delivering superior total cost of ownership relative to conventional CPU-only approaches. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThe platform consists of data center compute and networking infrastructure offerings typically delivered to customers as rack-scale systems, subsystems, or modules, along with software and services. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThis has enabled us to architect data center-scale computing platforms that can interconnect up to hundreds of thousands of compute nodes with high-performance networking. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThe Compute & Networking segment includes our Data Center accelerated computing and networking platforms and AI solutions and software, and Automotive platforms and autonomous and electric vehicle solutions including software. [NVDA 10-K FY2026 \u00b7 Item 1]",
+      "citations": [
+        {
+          "doc": "NVDA 10-K FY2026",
+          "section": "Item 1"
+        },
+        {
+          "doc": "NVDA 10-K FY2026",
+          "section": "Item 1"
+        },
+        {
+          "doc": "NVDA 10-K FY2026",
+          "section": "Item 1"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1799.3,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.219"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 1405.6,
+          "detail": "company-match grade: NVDA in top-3 = True (windowed cross-encoder best 4.52, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 6.4,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 5.7,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 3222.6,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E9",
+      "type": "answerable",
+      "question": "What concentration risks does NVIDIA disclose about its customers and supply chain?",
+      "expected": "Answer drawn from NVIDIA's Item 1A.",
+      "refused": false,
+      "answer": "Additional export restrictions may not only impact our ability to serve overseas markets, but also provoke responses from foreign governments, including China, that negatively impact our supply chain or our ability to provide our products and services to customers in all markets worldwide, which could also substantially reduce our revenue. [NVDA 10-K FY2026 \u00b7 Item 1A]\n\nWe must also continue to develop our security measures, including training programs and security awareness initiatives, designed to ensure our suppliers have appropriate security measures in place, and continue to meet the evolving security requirements of our customers, applicable industry standards, and government regulations. [NVDA 10-K FY2026 \u00b7 Item 1A]\n\nBreaches of our GFN security measures, which have happened in the past, could expose our partners to the risk of loss or misuse of this source code, damage both us and our partners, and expose NVIDIA to potential litigation and liability. [NVDA 10-K FY2026 \u00b7 Item 1A]\n\nIf we or a third party we rely on experience a security incident, which has occurred in the past, or are perceived to have experienced a security incident, we may experience adverse consequences, including government enforcement actions, additional reporting requirements and/or oversight, restrictions on processing data, litigation, indemnification obligations, reputational harm, diversion of funds, diversion of management attention, financial loss, loss of data, material disruptions in our systems and operations, supply chain, and ability to produce, sell and distribute our goods and services, and other similar harms. [NVDA 10-K FY2026 \u00b7 Item 1A]\n\nWe are required by certain data privacy and security obligations to notify relevant stakeholders, including affected individuals, customers, regulators and investors, of security incidents, and mandatory disclosure of such incidents could lead to negative publicity. [NVDA 10-K FY2026 \u00b7 Item 1A]",
+      "citations": [
+        {
+          "doc": "NVDA 10-K FY2026",
+          "section": "Item 1A"
+        },
+        {
+          "doc": "NVDA 10-K FY2026",
+          "section": "Item 1A"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1653.8,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score -0.954"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 2090.6,
+          "detail": "company-match grade: NVDA in top-3 = True (windowed cross-encoder best 0.52, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 9.2,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 12.5,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 3798.6,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E10",
+      "type": "comparison",
+      "question": "How do Apple and Microsoft each describe their business in their 10-K filings?",
+      "expected": "Answer citing BOTH companies' Item 1 business descriptions.",
+      "refused": false,
+      "answer": "Such reports and other information filed by the Company with the SEC are available free of charge at investor.apple.com/investor-relations/sec-filings/default.aspx when such reports are available on the SEC\u2019s website. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe Company periodically provides certain information for investors on its corporate website, www.apple.com, and its investor relations website, investor.apple.com. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nMicrosoft 365 Commercial is an AI-powered business and productivity solutions platform that brings together Office, Windows, Microsoft 365 Copilot, and Enterprise Mobility + Security to help organizations empower their employees. [MSFT 10-K FY2026 \u00b7 Item 1]\n\nEach industry shift is an opportunity to conceive new products, new technologies, or new ideas that can further transform the industry and our business. [MSFT 10-K FY2026 \u00b7 Item 7]",
+      "citations": [
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1"
+        },
+        {
+          "doc": "MSFT 10-K FY2026",
+          "section": "Item 1"
+        },
+        {
+          "doc": "MSFT 10-K FY2026",
+          "section": "Item 7"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 3085.6,
+          "detail": "per-company retrieval for ['AAPL', 'MSFT']: 8 merged candidates via hybrid+rerank on section chunks"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 377.3,
+          "detail": "company-match grade (comparison): covered ['AAPL', 'MSFT'], missing [] in merged top-8 (windowed cross-encoder best -0.09, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 6.6,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 5.8,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 3484.0,
+      "pass": true,
+      "note": "both companies cited; numbers verified"
+    },
+    {
+      "id": "E11",
+      "type": "comparison",
+      "question": "Which company reported higher total revenue in its most recent fiscal year, Apple or NVIDIA, and what were the figures?",
+      "expected": "Answer naming the higher-revenue company with both figures grounded and cited.",
+      "refused": false,
+      "answer": "AAPL reported total revenue of $416,161,000,000 for fiscal year 2025 (period ended 2025-09-27). [AAPL \u00b7 SEC company facts]\n\nThe following table shows net sales by reportable segment for 2024, 2023 and 2022 (dollars in millions): [AAPL 10-K FY2024 \u00b7 Item 7]\n\nDiscussions of 2022 items and year-to-year comparisons between 2023 and 2022 are not included, and can be found in \u201cManagement\u2019s Discussion and Analysis of Financial Condition and Results of Operations\u201d in Part II, Item 7 of the Company\u2019s Annual Report on Form 10-K for the fiscal year ended September 30, 2023. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nAn additional week is included in the first fiscal quarter every five or six years to realign the Company\u2019s fiscal quarters with calendar quarters, which occurred in the first quarter of 2023. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nDirect Customers \u2013 For fiscal year 2026, sales to one direct customer represented 22% of total revenue and sales to another direct customer represented 14% of total revenue, all of which were primarily attributable to the Compute & Networking segment. [NVDA 10-K FY2026 \u00b7 Item 7]\n\nFor fiscal year 2025, sales to one direct customer represented 12% of total revenue and sales to two direct customers each represented 11% of total revenue, all of which were primarily attributable to the Compute & Networking segment. [NVDA 10-K FY2026 \u00b7 Item 7]\n\nReportable segment operating income \u2013 The year over year increase in Compute & Networking segment operating income was driven by growth in revenue, partially offset by a $4.5 billion charge associated with H20 excess inventory and purchase obligations in the first quarter of fiscal year 2026. [NVDA 10-K FY2026 \u00b7 Item 7]",
+      "citations": [
+        {
+          "doc": "AAPL \u00b7 SEC company facts",
+          "section": "Figures table"
+        },
+        {
+          "doc": "AAPL 10-K FY2024",
+          "section": "Item 7"
+        },
+        {
+          "doc": "NVDA 10-K FY2026",
+          "section": "Item 7"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 3363.1,
+          "detail": "per-company retrieval for ['AAPL', 'NVDA']: 8 merged candidates via hybrid+rerank on section chunks"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 991.3,
+          "detail": "company-match grade (comparison): covered ['AAPL', 'NVDA'], missing [] in merged top-8 (windowed cross-encoder best -1.56, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 18.9,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 10.7,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 4389.4,
+      "pass": true,
+      "note": "both companies cited; numbers verified"
+    },
+    {
+      "id": "E12",
+      "type": "ambiguous",
+      "question": "How did the company perform last year?",
+      "expected": "Flag the ambiguity (which company?) or refuse \u2014 never silently pick one company.",
+      "refused": true,
+      "answer": "I couldn't find this in the filings I have access to. My corpus covers excerpts of the most recent 10-K filings for Apple, Microsoft, and NVIDIA (business, risk factors, MD&A, and financial statements) plus Apple's SEC company-facts figures \u2014 the answer isn't in that material, so I won't guess at it.",
+      "citations": [],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 2555.6,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score -5.621"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 1277.0,
+          "detail": "windowed cross-encoder top score -4.50 (threshold 0.0)"
+        },
+        {
+          "node": "rewrite",
+          "latency_ms": 0.2,
+          "detail": "keyword rewrite: 'perform last year Form 10-K annual report'"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1221.1,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.129"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 801.0,
+          "detail": "windowed cross-encoder top score -4.50 (threshold 0.0)"
+        },
+        {
+          "node": "refuse",
+          "latency_ms": 0.0,
+          "detail": "honest refusal \u2014 evidence insufficient after retrieval + rewrite"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "n/a (refused)",
+      "latency_ms": 5862.4,
+      "pass": true,
+      "note": "refused rather than guessing a company"
+    },
+    {
+      "id": "E13",
+      "type": "ambiguous",
+      "question": "What are the risks?",
+      "expected": "Flag the ambiguity (which company?) or refuse \u2014 never silently pick one company.",
+      "refused": false,
+      "answer": "Which company do you mean? I can search the 10-K filings for Apple, Microsoft, and NVIDIA \u2014 name one, or ask me to compare them, and I'll pull the relevant section.",
+      "citations": [],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1920.9,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 2.396"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 572.5,
+          "detail": "windowed cross-encoder top score 3.05 (threshold 0.0)"
+        },
+        {
+          "node": "clarify",
+          "latency_ms": 0.0,
+          "detail": "no company named in a multi-company corpus \u2014 asking which one"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 2497.2,
+      "pass": true,
+      "note": "answer explicitly flags the ambiguity"
+    },
+    {
+      "id": "E14",
+      "type": "unanswerable",
+      "question": "What was Tesla's revenue in fiscal 2024?",
+      "expected": "Refuse: Tesla is not in the corpus.",
+      "refused": true,
+      "answer": "That company isn't in the filings I can search. My corpus covers excerpts of the most recent 10-K filings for Apple, Microsoft, and NVIDIA plus Apple's SEC company-facts figures \u2014 I won't answer about a company I have no source documents for.",
+      "citations": [],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.1,
+          "detail": "named company is not in the corpus"
+        },
+        {
+          "node": "refuse",
+          "latency_ms": 0.0,
+          "detail": "honest refusal \u2014 named company is outside the corpus"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "n/a (refused)",
+      "latency_ms": 2.3,
+      "pass": true,
+      "note": "honest refusal"
+    },
+    {
+      "id": "E15",
+      "type": "unanswerable",
+      "question": "What will Apple's stock price be at the end of 2027?",
+      "expected": "Refuse: a future stock-price prediction is not in any filing.",
+      "refused": true,
+      "answer": "I can't answer that from the filings: they report what has already happened, and no filing can support a future stock price or a prediction. Ask me about a reported figure, a business segment, or a disclosed risk instead.",
+      "citations": [],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "future-prediction question \u2014 not answerable from filings"
+        },
+        {
+          "node": "refuse",
+          "latency_ms": 0.0,
+          "detail": "honest refusal \u2014 prediction question \u2014 filings report the past"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "n/a (refused)",
+      "latency_ms": 1.5,
+      "pass": true,
+      "note": "honest refusal"
+    }
+  ]
+}

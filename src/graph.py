@@ -2,10 +2,18 @@
 
 Flow::
 
-    retrieve ──► grade ──┬─ relevant ───────────────► generate ──► verify ─┬─ ok ──► END
-                         │                                               └─ fail ─► generate (once) ─► verify ─► refuse/END
-                         ├─ weak, no rewrite yet ──► rewrite ──► retrieve
-                         └─ weak, rewrite spent ───► refuse ──► END
+    scope ──┬─ prediction question ──► refuse
+            └─► retrieve ──► grade ──┬─ relevant, company named ──► generate ──► verify ─┬─ ok ──► END
+                                     │                                                     └─ fail ─► generate (once) ─► verify ─► refuse/END
+                                     ├─ relevant, NO company named ──► clarify (which company?)
+                                     ├─ weak, no rewrite yet ──► rewrite ──► retrieve
+                                     └─ weak, rewrite spent ───► refuse ──► END
+
+Grading uses *windowed* cross-encoder scores (best 700-char window of
+each top chunk): absolute ms-marco logits over a whole 4,000-char chunk
+systematically underrate relevant prose — the first eval run refused
+correct Item 1A retrievals at −2 — while passage-level grading matches
+how the model was trained.
 
 * **retrieve** — hybrid retrieval (mode selectable) over the chosen
   chunking strategy.
@@ -61,6 +69,62 @@ VERIFY_REFUSAL_ANSWER = (
     "every figure in the draft answer against the cited sources, so "
     "I won't present it. Please try narrowing the question."
 )
+PREDICTION_REFUSAL_ANSWER = (
+    "I can't answer that from the filings: they report what has already "
+    "happened, and no filing can support a future stock price or a "
+    "prediction. Ask me about a reported figure, a business segment, or "
+    "a disclosed risk instead."
+)
+OUT_OF_CORPUS_ANSWER = (
+    "That company isn't in the filings I can search. My corpus covers "
+    "excerpts of the most recent 10-K filings for Apple, Microsoft, and "
+    "NVIDIA plus Apple's SEC company-facts figures — I won't answer "
+    "about a company I have no source documents for."
+)
+
+_KNOWN_OTHER_COMPANIES = {
+    "tesla", "amazon", "alphabet", "google", "meta", "netflix", "amd",
+    "intel", "walmart", "disney", "boeing", "ford", "oracle", "adobe",
+    "salesforce", "berkshire", "jpmorgan", "exxon", "chevron", "nike",
+    "pfizer", "broadcom", "qualcomm", "paypal", "uber", "airbnb",
+    "spotify", "shopify", "snowflake", "palantir",
+}
+_POSSESSIVE_RE = re.compile(r"\b([A-Z][a-z]{2,})'s\b")
+_GENERIC_POSSESSIVES = {"Company", "Board", "Year", "Quarter", "Market",
+                        "Group", "Fund", "Index", "Bank"}
+
+
+def _other_company_mentioned(question: str) -> bool:
+    """True when the question names a company that is not in the corpus
+    (a well-known company name, or a capitalised possessive like
+    "Tesla's" that isn't a corpus company or a generic noun)."""
+    low = question.lower()
+    if any(name in low for name in _KNOWN_OTHER_COMPANIES):
+        return True
+    for m in _POSSESSIVE_RE.finditer(question):
+        name = m.group(1)
+        if name in _GENERIC_POSSESSIVES:
+            continue
+        if name.lower() in _COMPANY_ALIASES:
+            continue
+        return True
+    return False
+CLARIFY_ANSWER = (
+    "Which company do you mean? I can search the 10-K filings for "
+    "Apple, Microsoft, and NVIDIA — name one, or ask me to compare "
+    "them, and I'll pull the relevant section."
+)
+
+_PREDICTION_PATTERNS = (
+    re.compile(r"\bwill\b[^?]*\b(stock price|share price|price|be worth)\b", re.IGNORECASE),
+    re.compile(r"\b(predict|prediction|forecast)\w*\b[^?]*\b(price|stock|revenue)\b", re.IGNORECASE),
+    re.compile(r"\bprice target\b", re.IGNORECASE),
+    re.compile(r"\bstock price\b[^?]*\b(20\d{2}|future)\b", re.IGNORECASE),
+)
+
+
+def _is_prediction_question(question: str) -> bool:
+    return any(p.search(question) for p in _PREDICTION_PATTERNS)
 
 SYSTEM_PROMPT = """You are Market Buddy, a financial-documents assistant.
 Answer the question using ONLY the context provided below, which comes
@@ -133,6 +197,8 @@ class GraphState(TypedDict, total=False):
     answer: str
     citations: list[dict]
     refused: bool
+    refusal_kind: str
+    clarification: bool
     verify_ok: bool
     verify_detail: str
     trace: Annotated[list[dict], operator.add]
@@ -180,16 +246,72 @@ def _citations_from(results: list[dict], limit: int = 4) -> list[dict]:
 
 def retrieve_node(state: GraphState) -> dict:
     started = time.perf_counter()
-    out = search(state["query"], strategy=state.get("strategy", "section"),
-                 mode=state.get("retrieval_mode", "hybrid+rerank"), k=10)
+    strategy = state.get("strategy", "section")
+    mode = state.get("retrieval_mode", "hybrid+rerank")
+    mentioned = _mentioned_tickers(state["question"])
+    if len(mentioned) >= 2:
+        # Comparison questions: one fused ranking crowds the second
+        # company out of the pool entirely (measured: MSFT Item 1 never
+        # entered the top-10 for "Apple and Microsoft business"). Retrieve
+        # per company and interleave — the standard multi-aspect fix.
+        per_company = []
+        for ticker in sorted(mentioned):
+            out = search(state["query"], strategy=strategy, mode=mode, k=4,
+                         tickers={ticker})
+            per_company.append(_serialize(out["results"]))
+        merged: list[dict] = []
+        for i in range(4):
+            for lst in per_company:
+                if i < len(lst):
+                    merged.append(lst[i])
+        for rank, r in enumerate(merged, start=1):
+            r["rank"] = rank
+        return {
+            "results": merged,
+            "trace": _trace("retrieve", started,
+                            f"per-company retrieval for {sorted(mentioned)}: "
+                            f"{len(merged)} merged candidates via {mode} on {strategy} chunks"),
+        }
+    out = search(state["query"], strategy=strategy, mode=mode, k=10)
     results = _serialize(out["results"])
     top = results[0]["score"] if results else float("nan")
     return {
         "results": results,
         "trace": _trace("retrieve", started,
-                        f"{len(results)} candidates via {state.get('retrieval_mode', 'hybrid+rerank')} "
-                        f"on {state.get('strategy', 'section')} chunks; top score {top:.3f}"),
+                        f"{len(results)} candidates via {mode} "
+                        f"on {strategy} chunks; top score {top:.3f}"),
     }
+
+
+def _windowed_score(reranker, question: str, text: str,
+                    window: int = 700, stride: int = 350) -> float:
+    """Best cross-encoder score over sliding windows of a chunk.
+
+    Cross-encoders are trained on short passages; scoring a 4,000-char
+    chunk as one string systematically underrates relevant prose (the
+    first eval run refused correct Item 1A retrievals at -2). Grading
+    the best-matching window is the standard passage-level fix.
+    """
+    if len(text) <= window:
+        windows = [text]
+    else:
+        windows = [text[i:i + window] for i in range(0, len(text) - window + 1, stride)]
+        windows.append(text[-window:])
+    return max(float(s) for s in reranker.rerank(question, windows))
+
+
+def scope_node(state: GraphState) -> dict:
+    """Entry checks for questions no retrieval can ever satisfy:
+    future predictions (filings report the past) and companies that
+    are not in the corpus (no source documents exist for them)."""
+    started = time.perf_counter()
+    if _is_prediction_question(state["question"]):
+        return {"refusal_kind": "prediction",
+                "trace": _trace("scope", started, "future-prediction question — not answerable from filings")}
+    if not _mentioned_tickers(state["question"]) and _other_company_mentioned(state["question"]):
+        return {"refusal_kind": "other_company",
+                "trace": _trace("scope", started, "named company is not in the corpus")}
+    return {"trace": _trace("scope", started, "question is in corpus scope")}
 
 
 def grade_node(state: GraphState) -> dict:
@@ -199,11 +321,33 @@ def grade_node(state: GraphState) -> dict:
         return {"relevant": False, "grade_score": float("-inf"),
                 "trace": _trace("grade", started, "no candidates to grade")}
     reranker = get_reranker()
-    top_texts = [r["text"] for r in results[:3]]
-    scores = [float(s) for s in reranker.rerank(state["question"], top_texts)]
+    scores = [_windowed_score(reranker, state["question"], r["text"])
+              for r in results[:3]]
     best = max(scores) if scores else float("-inf")
-    relevant = best >= GRADE_THRESHOLD
-    detail = f"cross-encoder top score {best:.2f} (threshold {GRADE_THRESHOLD})"
+    # Calibrated grading (see the probe in docs/project-documentation.md):
+    # absolute ms-marco logits do NOT separate gold evidence from noise
+    # on legal prose (gold Item 1A chunk scored -4.8; a cross-company
+    # chunk scored +2.2), so for company-named questions the gate is
+    # company match at retrieval rank — the signal that held up: the
+    # gold chunk was rank 1 for 11 of 12 probe questions. The windowed
+    # score is still computed and traced, and it gates company-less
+    # questions, where it is well-behaved.
+    mentioned = _mentioned_tickers(state["question"])
+    if len(mentioned) == 1:
+        ticker = next(iter(mentioned))
+        relevant = any(r["ticker"] == ticker for r in results[:3])
+        detail = (f"company-match grade: {ticker} in top-3 = {relevant} "
+                  f"(windowed cross-encoder best {best:.2f}, recorded not gated)")
+    elif len(mentioned) > 1:
+        missing = [t for t in mentioned
+                   if not any(r["ticker"] == t for r in results[:8])]
+        relevant = not missing
+        detail = (f"company-match grade (comparison): covered "
+                  f"{sorted(mentioned - set(missing))}, missing {missing} in merged top-8 "
+                  f"(windowed cross-encoder best {best:.2f}, recorded not gated)")
+    else:
+        relevant = best >= GRADE_THRESHOLD
+        detail = f"windowed cross-encoder top score {best:.2f} (threshold {GRADE_THRESHOLD})"
     llm = get_llm()
     if relevant and llm is not None:
         verdicts = []
@@ -213,6 +357,7 @@ def grade_node(state: GraphState) -> dict:
             resp = llm.invoke(GRADE_PROMPT.format(
                 question=state["question"], excerpt=r["text"][:1200]))
             verdicts.append(str(resp.content).strip().lower().startswith("y"))
+        # (LLM grade can only tighten the windowed-score verdict.)
         if verdicts and not any(verdicts):
             relevant = False
             detail += "; LLM grade overruled: no chunk judged relevant"
@@ -251,9 +396,26 @@ def rewrite_node(state: GraphState) -> dict:
 
 def refuse_node(state: GraphState) -> dict:
     started = time.perf_counter()
-    answer = VERIFY_REFUSAL_ANSWER if state.get("verify_detail") else REFUSAL_ANSWER
+    if state.get("refusal_kind") == "prediction":
+        answer, why = PREDICTION_REFUSAL_ANSWER, "prediction question — filings report the past"
+    elif state.get("refusal_kind") == "other_company":
+        answer, why = OUT_OF_CORPUS_ANSWER, "named company is outside the corpus"
+    elif state.get("verify_detail"):
+        answer, why = VERIFY_REFUSAL_ANSWER, "draft failed numeric verification twice"
+    else:
+        answer, why = REFUSAL_ANSWER, "evidence insufficient after retrieval + rewrite"
     return {"refused": True, "answer": answer, "citations": [],
-            "trace": _trace("refuse", started, "evidence insufficient or unverifiable — honest refusal")}
+            "trace": _trace("refuse", started, f"honest refusal — {why}")}
+
+
+def clarify_node(state: GraphState) -> dict:
+    """Relevant evidence exists, but the question names no company and
+    the corpus spans three — answering would silently pick one."""
+    started = time.perf_counter()
+    return {"clarification": True, "refused": False, "answer": CLARIFY_ANSWER,
+            "citations": [],
+            "trace": _trace("clarify", started,
+                            "no company named in a multi-company corpus — asking which one")}
 
 
 _FIGURE_TRIGGER = re.compile(r"(revenue|net sales|net income|income)", re.IGNORECASE)
@@ -292,7 +454,23 @@ def _figure_sentence(state: GraphState) -> tuple[str, dict] | None:
     return line, citation
 
 
-_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+|;\s+|\n+")
+
+
+def _word_match(a: str, b: str) -> bool:
+    """Crude morphological match: exact, plural-stripped, or a shared
+    5-char prefix (competition / compete / competitive). Exact-token
+    overlap alone starved the extractive composer — filings write
+    "risks" where questions write "risk"."""
+    if a == b:
+        return True
+    if len(a) > 3 and len(b) > 3 and a.rstrip("s") == b.rstrip("s"):
+        return True
+    return len(a) >= 5 and len(b) >= 5 and (a.startswith(b[:5]) or b.startswith(a[:5]))
+
+
+def _stem_overlap(q_words: set[str], sent_words: set[str]) -> int:
+    return sum(1 for qw in q_words if any(_word_match(qw, sw) for sw in sent_words))
 _COMPANY_ALIASES = {"apple": "AAPL", "aapl": "AAPL", "microsoft": "MSFT",
                     "msft": "MSFT", "nvidia": "NVDA", "nvda": "NVDA"}
 
@@ -302,8 +480,15 @@ def _mentioned_tickers(question: str) -> set[str]:
     return {t for alias, t in _COMPANY_ALIASES.items() if alias in q}
 
 
+def _evidence(state: GraphState) -> list[dict]:
+    """The chunk set generation may cite and verification checks
+    against: top-4 normally, the full merged top-8 for comparisons."""
+    n = 8 if len(_mentioned_tickers(state["question"])) >= 2 else 4
+    return state.get("results", [])[:n]
+
+
 def _extractive_answer(state: GraphState) -> tuple[str, list[dict]]:
-    results = state.get("results", [])[:4]
+    results = _evidence(state)
     mentioned = _mentioned_tickers(state["question"])
     if mentioned and any(r["ticker"] in mentioned for r in results):
         # A question about one company must not be answered with another
@@ -314,29 +499,50 @@ def _extractive_answer(state: GraphState) -> tuple[str, list[dict]]:
     asks_figure = bool(_FIGURE_TRIGGER.search(state["question"]))
 
     scored: list[tuple[float, str, dict]] = []
-    for r in results:
+    for rank_idx, r in enumerate(results):
         for sent in _SENT_SPLIT.split(r["text"]):
             sent = " ".join(sent.split())
-            if len(sent) < 30 or len(sent) > 420:
+            if len(sent) < 30 or len(sent) > 800:
                 continue
             words = {w.lower() for w in re.findall(r"[a-z0-9]+", sent.lower())}
-            overlap = len(q_words & words)
+            overlap = _stem_overlap(q_words, words)
             has_number = bool(re.search(r"\d", sent))
-            score = overlap + (2.0 if (asks_figure and has_number) else 0.0)
-            if overlap >= 2 or (asks_figure and has_number and overlap >= 1):
+            # Retrieval rank is a real relevance signal: prefer sentences
+            # from higher-ranked chunks when overlap is comparable.
+            score = 1.5 * overlap + (2.0 if (asks_figure and has_number) else 0.0) \
+                + max(0, 4 - rank_idx) * 0.4
+            if (overlap >= 2 or (overlap >= 1 and rank_idx == 0)
+                    or (asks_figure and has_number and overlap >= 1)):
                 scored.append((score, sent, r))
     scored.sort(key=lambda t: -t[0])
 
     picked: list[tuple[str, dict]] = []
     seen: set[str] = set()
-    for _score, sent, r in scored:
-        key = sent[:60]
-        if key in seen:
-            continue
-        seen.add(key)
-        picked.append((sent, r))
-        if len(picked) >= 5:
-            break
+
+    def _take(cands: list[tuple[float, str, dict]], limit: int) -> None:
+        for _s, sent, r in cands:
+            if len(picked) >= limit:
+                return
+            key = sent[:60]
+            if key in seen:
+                continue
+            seen.add(key)
+            picked.append((sent, r))
+
+    if len(mentioned) >= 2:
+        # Comparison composition: each named company contributes its
+        # best figure sentence first (when figures are asked), then its
+        # best content sentence — one company must not flood the top-5
+        # on raw overlap while the other goes unquoted.
+        for ticker in sorted(mentioned):
+            comp = [c for c in scored if c[2]["ticker"] == ticker]
+            if asks_figure:
+                fig_c = [c for c in comp if re.search(r"\d", c[1]) and
+                         any(w in c[1].lower() for w in ("revenue", "net sales", "income"))]
+                _take(fig_c[:1], len(picked) + 1)
+            _take(comp, len(picked) + 2)
+    else:
+        _take(scored, 5)
 
     parts: list[str] = []
     used: list[dict] = []
@@ -363,7 +569,7 @@ def _extractive_answer(state: GraphState) -> tuple[str, list[dict]]:
 
 def _llm_answer(state: GraphState, strict_note: str = "") -> tuple[str, list[dict]]:
     llm = get_llm()
-    results = state.get("results", [])[:4]
+    results = _evidence(state)
     context_parts = []
     for r in results:
         context_parts.append(f"[{r['doc']} · {r['section']}]\n{r['text'][:2600]}")
@@ -468,7 +674,7 @@ def verify_answer(answer: str, results: list[dict]) -> tuple[bool, str]:
 
 def verify_node(state: GraphState) -> dict:
     started = time.perf_counter()
-    ok, detail = verify_answer(state.get("answer", ""), state.get("results", [])[:4])
+    ok, detail = verify_answer(state.get("answer", ""), _evidence(state))
     return {"verify_ok": ok, "verify_detail": "" if ok else detail,
             "trace": _trace("verify", started, detail)}
 
@@ -477,8 +683,15 @@ def verify_node(state: GraphState) -> dict:
 # Graph assembly
 # ---------------------------------------------------------------------------
 
+def _route_after_scope(state: GraphState) -> str:
+    return "refuse" if state.get("refusal_kind") else "retrieve"
+
+
 def _route_after_grade(state: GraphState) -> str:
     if state.get("relevant"):
+        # Relevant evidence but no company named: don't silently pick one.
+        if not _mentioned_tickers(state["question"]):
+            return "clarify"
         return "generate"
     if state.get("rewrites", 0) < 1:
         return "rewrite"
@@ -495,21 +708,27 @@ def _route_after_verify(state: GraphState) -> str:
 
 def build_graph():
     g = StateGraph(GraphState)
+    g.add_node("scope", scope_node)
     g.add_node("retrieve", retrieve_node)
     g.add_node("grade", grade_node)
     g.add_node("rewrite", rewrite_node)
     g.add_node("generate", generate_node)
     g.add_node("verify", verify_node)
     g.add_node("refuse", refuse_node)
-    g.add_edge(START, "retrieve")
+    g.add_node("clarify", clarify_node)
+    g.add_edge(START, "scope")
+    g.add_conditional_edges("scope", _route_after_scope,
+                            {"retrieve": "retrieve", "refuse": "refuse"})
     g.add_edge("retrieve", "grade")
     g.add_conditional_edges("grade", _route_after_grade,
-                            {"generate": "generate", "rewrite": "rewrite", "refuse": "refuse"})
+                            {"generate": "generate", "rewrite": "rewrite",
+                             "refuse": "refuse", "clarify": "clarify"})
     g.add_edge("rewrite", "retrieve")
     g.add_conditional_edges("verify", _route_after_verify,
                             {"generate": "generate", "refuse": "refuse", END: END})
     g.add_edge("generate", "verify")
     g.add_edge("refuse", END)
+    g.add_edge("clarify", END)
     return g.compile()
 
 
@@ -540,6 +759,7 @@ def run(question: str, strategy: str = "section",
         "question": question,
         "answer": final.get("answer", ""),
         "refused": bool(final.get("refused", False)),
+        "clarification": bool(final.get("clarification", False)),
         "citations": final.get("citations", []),
         "trace": final.get("trace", []),
         "mode": llm_mode(),
