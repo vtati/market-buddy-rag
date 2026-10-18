@@ -343,3 +343,50 @@ of these measurements." The eval harness itself is pinned to
 `corpus="bundled"` in code, and a test asserts the Tesla question
 still refuses under that pin after ingestion — the measurements
 can't drift even if the demo state does.
+
+## (g) Addendum — live market context (Feature 8)
+
+The final layer is presentational: real market data around the
+filings, so the product reads like a market tool rather than a
+chatbot bolted onto a corpus. Three surfaces, all fed by
+`src/market.py`:
+
+- **Market strip** above the chat — the S&P 500, Nasdaq Composite
+  and Dow, plus every active-corpus company (bundled and session),
+  each with price, day change, and a 1-month sparkline; auto-refresh
+  every 60 seconds.
+- **Company snapshot** in the chat rail. Focus follows the
+  conversation (the ticker behind the most recent cited answer) or a
+  corpus-panel click. It pairs the market's numbers (delayed quote,
+  price chart at 1M/6M/1Y, market cap, trailing P/E, 52-week and
+  day ranges, volume) with a separated, source-labelled block —
+  "From the filing — our corpus" — carrying the latest fiscal
+  year's revenue and net income (with a YoY revenue delta) from the
+  same figures table the chat cites. The juxtaposition is the
+  feature: two provenances, one company, neither masquerading as
+  the other.
+- **Trending rail** on Add a Company — Yahoo's trending tickers as
+  chips; one tap prefills the ingest form and resolves the company,
+  closing the loop from "what's moving" to "what does its 10-K say".
+
+Sources are free and keyless: Yahoo Finance via `yfinance` primary,
+Stooq's CSV endpoints as fallback, Yahoo's public trending endpoint
+for the rail. Engineering choices, in the spirit of the rest of the
+build: every fetch is timeout-bounded and failure-isolated (a
+source outage degrades the payload to `available: false` and the UI
+hides the surface — it can never break chat); results cache
+in-memory (quotes 60s, history 15 min, trending 5 min) with startup
+pre-warming; and every payload carries `source`, `as_of`, and
+`delayed: true`, rendered in the UI as "Delayed quotes · Yahoo
+Finance · as of …" — free market data is delayed, and the interface
+says so. Two environment lessons were earned, not read: curl_cffi
+sessions are not thread-safe (concurrent warm-up fetches crossed
+responses until Yahoo calls were serialized), and httpx needs its
+proxy passed explicitly with the OS CA bundle where an egress proxy
+intercepts TLS. Charts are hand-rolled SVG in the design system's
+tokens — no chart library was added for two path elements.
+
+The boundary is absolute: market data never enters retrieval,
+grading, generation, or the eval. Answers still come only from
+filings and the SEC figures table; the tape is context for the
+human, not evidence for the model.

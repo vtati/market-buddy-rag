@@ -142,6 +142,30 @@ SEC latency. Every other ticker goes live to EDGAR. Rebuild with
 with their source (`bundled` · `precached` · `live`);
 `POST /api/chat` accepts `corpus: "active" | "bundled" | "<TICKER>"`.
 
+## Live market context
+
+The app sits inside real market data, so a filing answer never floats
+in a vacuum. A **market strip** runs above the chat (S&P 500, Nasdaq,
+Dow, plus every active-corpus company — price, day change, 1-month
+sparkline, refreshed every 60s), a **company snapshot** in the chat's
+side rail pairs the market's view of the company in focus (delayed
+quote, 6-month price chart with 1M/6M/1Y ranges, market cap, P/E,
+52-week range) with **the filing's view** — the latest revenue and
+net income from the same corpus figures table the chat cites — and a
+**trending rail** on the Add a Company page turns Yahoo's trending
+tickers into one-tap 10-K ingestions.
+
+Sources are free and keyless: **Yahoo Finance** (via `yfinance`) is
+primary, **Stooq**'s CSV endpoints are the fallback, and every
+payload carries its `source` and `as_of` with `delayed: true` — the
+UI labels the data "Delayed quotes", because it is. Quotes cache for
+60s, history for 15 minutes, trending for 5, and any source failure
+degrades to `available: false` (the strip simply doesn't render)
+rather than an error. Market data is a presentation layer only: it
+**never** feeds chat answers, grading, or the eval. Endpoints:
+`GET /api/market/quote`, `/history`, `/overview`, `/trending`,
+`/filing-figures`.
+
 ## Measured results (real runs, committed under `results/`)
 
 **Chunking × retrieval comparison** — 12 questions with known gold
@@ -172,10 +196,12 @@ extractive mode on local CPU. The first measured run passed 8/15; the
 failure analysis and the mechanism-level fixes are documented in
 `docs/project-documentation.md`.
 
-**Tests** — 16 pytest tests (chunking invariants, figures-table
+**Tests** — 26 pytest tests (chunking invariants, figures-table
 values, retrieval determinism, graph refusal/clarification/answer
-paths, plus ticker resolution, precache ingest, and the dynamic
-refuse → ingest → answer scope arc), all passing:
+paths, ticker resolution, precache ingest, the dynamic
+refuse → ingest → answer scope arc, plus the market layer's
+fallback order, cache behavior, and degrade-to-unavailable contract
+with injected fake fetchers), all passing:
 `python -m pytest tests/ -q`.
 
 ## Setup
