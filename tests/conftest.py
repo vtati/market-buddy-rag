@@ -22,3 +22,21 @@ def _no_llm_keys(monkeypatch):
     """The suite must pass with zero API keys (the demo's keyless mode)."""
     for var in ("OPENAI_API_KEY", "NEBIUS_API_KEY", "LLM_MODEL"):
         monkeypatch.delenv(var, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _isolated_session_corpus(tmp_path, monkeypatch):
+    """Session-corpus isolation: every test sees an EMPTY session
+    registry (a tmp dir), never whatever a live demo server ingested
+    into data/session/. The precache dir stays real (read-only) so the
+    Tesla ingest tests run offline through the cache path. Retrieval
+    indexes are dropped around each test so active-corpus state can't
+    leak between tests."""
+    from src import registry, retrieval
+
+    monkeypatch.setattr(registry, "SESSION_DIR", tmp_path / "session")
+    registry.reset_cache()
+    retrieval.invalidate_indexes()
+    yield
+    registry.reset_cache()
+    retrieval.invalidate_indexes()
