@@ -70,9 +70,10 @@ questions in a three-company corpus route to a **clarification**
 Each refusal names what the corpus does cover.
 
 **Latency ceiling + measured numbers.** Budget: a chat answer inside
-~5 s on a laptop CPU, all-local. Measured end-to-end through the graph
-(15-question eval, extractive mode): **mean 3.0 s, worst case ~6 s
-cold**. Retrieval alone: ~20 ms (vector/hybrid) vs ~2.4 s
+~5 s warm on a laptop CPU, all-local. Measured end-to-end through the
+graph (15-question eval, extractive mode): **mean 3.0 s**; a cold
+first question right after server start measured ~7 s (index build +
+model load race the warm-up thread). Retrieval alone: ~20 ms (vector/hybrid) vs ~2.4 s
 (hybrid+rerank) per question — the cross-encoder on CPU is the entire
 latency story, and the comparison experiment shows what it buys
 (MRR 0.74 → 0.93 on section chunks). Quality gates measured on the
