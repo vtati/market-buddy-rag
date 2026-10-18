@@ -20,6 +20,7 @@ expects it at NEXT_PUBLIC_API_BASE, default http://localhost:8000).
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 
@@ -34,9 +35,16 @@ from src.ingest import REPO_ROOT, find_item_sections, load_bundled_documents
 from src.retrieval import EMBED_MODEL, MODES, RERANK_MODEL
 
 app = FastAPI(title="Market Buddy RAG — Week 2 demo API", version="1.0.0")
+
+# Local dev origins are always allowed; deployed front-ends are added
+# via the ALLOWED_ORIGINS env var (comma-separated), e.g. on Railway:
+# ALLOWED_ORIGINS=https://ragdemo.genalphalabs.com
+_allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"] + [
+    o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
