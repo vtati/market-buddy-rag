@@ -51,6 +51,7 @@ from typing import Annotated, TypedDict
 from dotenv import load_dotenv
 from langgraph.graph import END, START, StateGraph
 
+from src import registry
 from src.ingest import figures_as_text, load_figures
 from src.retrieval import get_reranker, search
 
@@ -94,21 +95,69 @@ _GENERIC_POSSESSIVES = {"Company", "Board", "Year", "Quarter", "Market",
                         "Group", "Fund", "Index", "Bank"}
 
 
-def _other_company_mentioned(question: str) -> bool:
-    """True when the question names a company that is not in the corpus
+def _allowed_tickers(corpus: str) -> set[str]:
+    """Companies the chat may answer about under a corpus selector:
+    "bundled" -> the frozen snapshot; a ticker -> that company only;
+    anything else ("active") -> bundled + session-ingested."""
+    if corpus == "bundled":
+        return set(registry.BUNDLED_TICKERS)
+    if corpus in registry.known_tickers():
+        return {corpus}
+    return registry.known_tickers()
+
+
+def _other_company_mentioned(question: str, corpus: str = "active") -> bool:
+    """True when the question names a company outside the allowed set
     (a well-known company name, or a capitalised possessive like
-    "Tesla's" that isn't a corpus company or a generic noun)."""
+    "Tesla's" that isn't an allowed company or a generic noun). A
+    session-ingested company stops being 'other' the moment it
+    registers — the registry, not this list, decides."""
+    allowed_aliases = registry.company_aliases(_allowed_tickers(corpus))
     low = question.lower()
-    if any(name in low for name in _KNOWN_OTHER_COMPANIES):
-        return True
+    for name in _KNOWN_OTHER_COMPANIES:
+        if name in low and name not in allowed_aliases:
+            return True
     for m in _POSSESSIVE_RE.finditer(question):
         name = m.group(1)
         if name in _GENERIC_POSSESSIVES:
             continue
-        if name.lower() in _COMPANY_ALIASES:
+        if name.lower() in allowed_aliases:
             continue
         return True
     return False
+
+
+def _corpus_answers(corpus: str) -> tuple[str, str, str]:
+    """(refusal, out-of-corpus, clarify) copy naming the ACTIVE corpus.
+
+    With no session companies involved the original bundled-corpus
+    strings are returned verbatim; otherwise the coverage sentence is
+    composed from the registry so refusals name what is actually
+    searchable right now.
+    """
+    allowed = _allowed_tickers(corpus)
+    if allowed == set(registry.BUNDLED_TICKERS):
+        return REFUSAL_ANSWER, OUT_OF_CORPUS_ANSWER, CLARIFY_ANSWER
+    listing, fig_clause = registry.coverage_sentence(allowed)
+    refusal = (
+        "I couldn't find this in the filings I have access to. My corpus "
+        f"covers excerpts of the most recent 10-K filings for {listing} "
+        "(business, risk factors, MD&A, and financial statements)"
+        f"{fig_clause} — the answer isn't in that material, so I won't "
+        "guess at it."
+    )
+    out_of_corpus = (
+        "That company isn't in the filings I can search. My corpus covers "
+        f"excerpts of the most recent 10-K filings for {listing}"
+        f"{fig_clause} — I won't answer about a company I have no source "
+        "documents for."
+    )
+    clarify = (
+        f"Which company do you mean? I can search the 10-K filings for "
+        f"{listing} — name one, or ask me to compare them, and I'll pull "
+        "the relevant section."
+    )
+    return refusal, out_of_corpus, clarify
 CLARIFY_ANSWER = (
     "Which company do you mean? I can search the 10-K filings for "
     "Apple, Microsoft, and NVIDIA — name one, or ask me to compare "
@@ -188,6 +237,7 @@ class GraphState(TypedDict, total=False):
     question: str
     strategy: str
     retrieval_mode: str
+    corpus: str
     query: str
     results: list[dict]
     grade_score: float
@@ -244,11 +294,19 @@ def _citations_from(results: list[dict], limit: int = 4) -> list[dict]:
 # Nodes
 # ---------------------------------------------------------------------------
 
+def _index_corpus(state: GraphState) -> str:
+    """Which retrieval corpus a run searches: the bundled snapshot, or
+    the active corpus (bundled + session) for every other selector."""
+    return "bundled" if state.get("corpus", "active") == "bundled" else "active"
+
+
 def retrieve_node(state: GraphState) -> dict:
     started = time.perf_counter()
     strategy = state.get("strategy", "section")
     mode = state.get("retrieval_mode", "hybrid+rerank")
-    mentioned = _mentioned_tickers(state["question"])
+    corpus = state.get("corpus", "active")
+    index_corpus = _index_corpus(state)
+    mentioned = _mentioned_tickers(state["question"], corpus)
     if len(mentioned) >= 2:
         # Comparison questions: one fused ranking crowds the second
         # company out of the pool entirely (measured: MSFT Item 1 never
@@ -257,7 +315,7 @@ def retrieve_node(state: GraphState) -> dict:
         per_company = []
         for ticker in sorted(mentioned):
             out = search(state["query"], strategy=strategy, mode=mode, k=4,
-                         tickers={ticker})
+                         tickers={ticker}, corpus=index_corpus)
             per_company.append(_serialize(out["results"]))
         merged: list[dict] = []
         for i in range(4):
@@ -272,7 +330,8 @@ def retrieve_node(state: GraphState) -> dict:
                             f"per-company retrieval for {sorted(mentioned)}: "
                             f"{len(merged)} merged candidates via {mode} on {strategy} chunks"),
         }
-    out = search(state["query"], strategy=strategy, mode=mode, k=10)
+    out = search(state["query"], strategy=strategy, mode=mode, k=10,
+                 corpus=index_corpus)
     results = _serialize(out["results"])
     top = results[0]["score"] if results else float("nan")
     return {
@@ -305,10 +364,11 @@ def scope_node(state: GraphState) -> dict:
     future predictions (filings report the past) and companies that
     are not in the corpus (no source documents exist for them)."""
     started = time.perf_counter()
+    corpus = state.get("corpus", "active")
     if _is_prediction_question(state["question"]):
         return {"refusal_kind": "prediction",
                 "trace": _trace("scope", started, "future-prediction question — not answerable from filings")}
-    if not _mentioned_tickers(state["question"]) and _other_company_mentioned(state["question"]):
+    if not _mentioned_tickers(state["question"], corpus) and _other_company_mentioned(state["question"], corpus):
         return {"refusal_kind": "other_company",
                 "trace": _trace("scope", started, "named company is not in the corpus")}
     return {"trace": _trace("scope", started, "question is in corpus scope")}
@@ -332,7 +392,7 @@ def grade_node(state: GraphState) -> dict:
     # gold chunk was rank 1 for 11 of 12 probe questions. The windowed
     # score is still computed and traced, and it gates company-less
     # questions, where it is well-behaved.
-    mentioned = _mentioned_tickers(state["question"])
+    mentioned = _mentioned_tickers(state["question"], state.get("corpus", "active"))
     if len(mentioned) == 1:
         ticker = next(iter(mentioned))
         relevant = any(r["ticker"] == ticker for r in results[:3])
@@ -375,8 +435,10 @@ _STOPWORDS = {"what", "was", "were", "is", "are", "did", "does", "how", "much",
 def _heuristic_rewrite(question: str) -> str:
     words = re.findall(r"[A-Za-z0-9$.,%'-]+", question)
     kept = [w for w in words if w.lower().strip("?") not in _STOPWORDS]
-    tickers = [t for t in ("Apple", "Microsoft", "NVIDIA", "AAPL", "MSFT", "NVDA")
-               if t.lower() in question.lower()]
+    names = ["Apple", "Microsoft", "NVIDIA", "AAPL", "MSFT", "NVDA"]
+    for ticker in registry.session_companies():
+        names += [registry.short_name(ticker), ticker]
+    tickers = [t for t in names if t.lower() in question.lower()]
     return " ".join(kept + tickers + ["Form 10-K annual report"]).strip()
 
 
@@ -396,23 +458,25 @@ def rewrite_node(state: GraphState) -> dict:
 
 def refuse_node(state: GraphState) -> dict:
     started = time.perf_counter()
+    refusal, out_of_corpus, _clarify = _corpus_answers(state.get("corpus", "active"))
     if state.get("refusal_kind") == "prediction":
         answer, why = PREDICTION_REFUSAL_ANSWER, "prediction question — filings report the past"
     elif state.get("refusal_kind") == "other_company":
-        answer, why = OUT_OF_CORPUS_ANSWER, "named company is outside the corpus"
+        answer, why = out_of_corpus, "named company is outside the corpus"
     elif state.get("verify_detail"):
         answer, why = VERIFY_REFUSAL_ANSWER, "draft failed numeric verification twice"
     else:
-        answer, why = REFUSAL_ANSWER, "evidence insufficient after retrieval + rewrite"
+        answer, why = refusal, "evidence insufficient after retrieval + rewrite"
     return {"refused": True, "answer": answer, "citations": [],
             "trace": _trace("refuse", started, f"honest refusal — {why}")}
 
 
 def clarify_node(state: GraphState) -> dict:
     """Relevant evidence exists, but the question names no company and
-    the corpus spans three — answering would silently pick one."""
+    the corpus spans several — answering would silently pick one."""
     started = time.perf_counter()
-    return {"clarification": True, "refused": False, "answer": CLARIFY_ANSWER,
+    _r, _o, clarify = _corpus_answers(state.get("corpus", "active"))
+    return {"clarification": True, "refused": False, "answer": clarify,
             "citations": [],
             "trace": _trace("clarify", started,
                             "no company named in a multi-company corpus — asking which one")}
@@ -423,35 +487,41 @@ _YEAR_RE = re.compile(r"\b(20\d{2})\b")
 
 
 def _figure_sentence(state: GraphState) -> tuple[str, dict] | None:
-    """A grounded figures-table sentence when the question asks for one."""
+    """A grounded figures-table sentence when the question asks for one.
+
+    Works for any company with figures rows — bundled AAPL plus every
+    session-ingested company (the registry's combined table)."""
     q = state["question"]
-    if "AAPL" not in q and "Apple" not in q:
-        return None
-    if not _FIGURE_TRIGGER.search(q):
+    mentioned = _mentioned_tickers(q, state.get("corpus", "active"))
+    if not mentioned or not _FIGURE_TRIGGER.search(q):
         return None
     years = _YEAR_RE.findall(q)
     wants_income = "income" in q.lower()
-    candidates = [
-        f for f in load_figures()
-        if wants_income == (f["concept"] == "Net income")
-        and (not years or str(f["fiscal_year"]) in years)
-    ]
-    if not candidates:
-        return None
-    # An explicit year in the question wins; otherwise the most recent
-    # fiscal year (never the oldest row in the table).
-    f = max(candidates, key=lambda c: c["fiscal_year"])
-    line = (f"{f['ticker']} reported {f['concept'].lower()} of "
-            f"${f['value_usd']:,} for fiscal year {f['fiscal_year']} "
-            f"(period ended {f['period_end']}).")
-    citation = {
-        "doc": "AAPL · SEC company facts",
-        "section": "Figures table",
-        "span": [0, 0],
-        "excerpt": figures_as_text([f]),
-        "score": 0.0,
-    }
-    return line, citation
+    all_figures = registry.all_figures()
+    for ticker in sorted(mentioned):
+        candidates = [
+            f for f in all_figures
+            if f["ticker"] == ticker
+            and wants_income == (f["concept"] == "Net income")
+            and (not years or str(f["fiscal_year"]) in years)
+        ]
+        if not candidates:
+            continue
+        # An explicit year in the question wins; otherwise the most recent
+        # fiscal year (never the oldest row in the table).
+        f = max(candidates, key=lambda c: c["fiscal_year"])
+        line = (f"{f['ticker']} reported {f['concept'].lower()} of "
+                f"${f['value_usd']:,} for fiscal year {f['fiscal_year']} "
+                f"(period ended {f['period_end']}).")
+        citation = {
+            "doc": f"{ticker} · SEC company facts",
+            "section": "Figures table",
+            "span": [0, 0],
+            "excerpt": figures_as_text([f]),
+            "score": 0.0,
+        }
+        return line, citation
+    return None
 
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+|;\s+|\n+")
@@ -475,21 +545,26 @@ _COMPANY_ALIASES = {"apple": "AAPL", "aapl": "AAPL", "microsoft": "MSFT",
                     "msft": "MSFT", "nvidia": "NVDA", "nvda": "NVDA"}
 
 
-def _mentioned_tickers(question: str) -> set[str]:
+def _mentioned_tickers(question: str, corpus: str = "active") -> set[str]:
+    """Tickers the question names, resolved through the registry's
+    alias map for the companies allowed under ``corpus`` — bundled
+    aliases plus every session-ingested company's name/ticker."""
+    aliases = registry.company_aliases(_allowed_tickers(corpus))
     q = question.lower()
-    return {t for alias, t in _COMPANY_ALIASES.items() if alias in q}
+    return {t for alias, t in aliases.items() if alias in q}
 
 
 def _evidence(state: GraphState) -> list[dict]:
     """The chunk set generation may cite and verification checks
     against: top-4 normally, the full merged top-8 for comparisons."""
-    n = 8 if len(_mentioned_tickers(state["question"])) >= 2 else 4
+    n = 8 if len(_mentioned_tickers(state["question"],
+                                     state.get("corpus", "active"))) >= 2 else 4
     return state.get("results", [])[:n]
 
 
 def _extractive_answer(state: GraphState) -> tuple[str, list[dict]]:
     results = _evidence(state)
-    mentioned = _mentioned_tickers(state["question"])
+    mentioned = _mentioned_tickers(state["question"], state.get("corpus", "active"))
     if mentioned and any(r["ticker"] in mentioned for r in results):
         # A question about one company must not be answered with another
         # company's sentences (comparison questions name both, and keep both).
@@ -548,7 +623,7 @@ def _extractive_answer(state: GraphState) -> tuple[str, list[dict]]:
     used: list[dict] = []
     fig = _figure_sentence(state)
     if fig:
-        parts.append(fig[0] + " [AAPL · SEC company facts]")
+        parts.append(fig[0] + f" [{fig[1]['doc']}]")
         used.append(fig[1])
     for sent, r in picked:
         parts.append(f"{sent} [{r['doc']} · {r['section']}]")
@@ -575,6 +650,10 @@ def _llm_answer(state: GraphState, strict_note: str = "") -> tuple[str, list[dic
         context_parts.append(f"[{r['doc']} · {r['section']}]\n{r['text'][:2600]}")
     figures = load_figures()
     context_parts.append("[AAPL · SEC company facts]\n" + figures_as_text(figures[-8:]))
+    session_figs = registry.session_figures()
+    if session_figs:
+        context_parts.append("[Session companies · SEC company facts]\n"
+                             + figures_as_text(session_figs))
     prompt = (
         f"{SYSTEM_PROMPT}\n\nContext:\n" + "\n\n".join(context_parts)
         + f"\n\nQuestion: {state['question']}{strict_note}"
@@ -634,7 +713,7 @@ def _token_value(token: str) -> float | None:
 def verify_answer(answer: str, results: list[dict]) -> tuple[bool, str]:
     """Every number in the answer must trace to a cited chunk or figure."""
     grounded_text = "\n".join(r["text"] for r in results)
-    figures = load_figures()
+    figures = registry.all_figures()
     grounded_text += "\n" + figures_as_text(figures)
     grounded_values: set[float] = set()
     for tok in _NUM_RE.findall(grounded_text):
@@ -690,7 +769,7 @@ def _route_after_scope(state: GraphState) -> str:
 def _route_after_grade(state: GraphState) -> str:
     if state.get("relevant"):
         # Relevant evidence but no company named: don't silently pick one.
-        if not _mentioned_tickers(state["question"]):
+        if not _mentioned_tickers(state["question"], state.get("corpus", "active")):
             return "clarify"
         return "generate"
     if state.get("rewrites", 0) < 1:
@@ -743,14 +822,20 @@ def get_app():
 
 
 def run(question: str, strategy: str = "section",
-        retrieval_mode: str = "hybrid+rerank") -> dict:
-    """Ask one question; returns the JSON-able result for API/UI/tests."""
+        retrieval_mode: str = "hybrid+rerank", corpus: str = "active") -> dict:
+    """Ask one question; returns the JSON-able result for API/UI/tests.
+
+    ``corpus``: "active" (bundled + session, the default), "bundled"
+    (the frozen snapshot the measurements are pinned to), or a ticker
+    restricting scope + retrieval to that one company.
+    """
     started = time.perf_counter()
     final = get_app().invoke({
         "question": question,
         "query": question,
         "strategy": strategy,
         "retrieval_mode": retrieval_mode,
+        "corpus": corpus,
         "rewrites": 0,
         "generations": 0,
         "trace": [],
@@ -765,6 +850,7 @@ def run(question: str, strategy: str = "section",
         "mode": llm_mode(),
         "strategy": strategy,
         "retrieval_mode": retrieval_mode,
+        "corpus": corpus,
         "latency_ms": round((time.perf_counter() - started) * 1000, 1),
     }
 

@@ -155,7 +155,9 @@ def _judge(q: dict, result: dict) -> tuple[bool, str, bool, str]:
 def run_eval() -> dict:
     rows = []
     for q in EVAL_QUESTIONS:
-        result = run(q["question"])
+        # The eval is pinned to the bundled corpus: its measured numbers
+        # describe the frozen snapshot, never session-ingested companies.
+        result = run(q["question"], corpus="bundled")
         passed, note, faithful, faith_detail = _judge(q, result)
         rows.append({
             "id": q["id"], "type": q["type"], "question": q["question"],

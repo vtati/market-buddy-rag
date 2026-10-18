@@ -40,7 +40,7 @@ _STAGE_DETAILS = {
     "fetch": "latest 10-K from SEC EDGAR",
     "clean": "HTML → text, whole-Item slicing (Items 1, 1A, 7, 8)",
     "chunk": "fixed-size + section-aware chunking",
-    "embed": "bge-small embeddings + FAISS/BM25 indexes for the active corpus",
+    "embed": "bge-small embeddings + FAISS/BM25 index for the active corpus",
     "figures": "SEC company-facts → revenue + net income by fiscal year",
     "ready": "registered in the corpus",
 }
@@ -207,7 +207,8 @@ def ingest_company(ticker: str, job: dict | None = None,
         retrieval.invalidate_indexes("active")
         retrieval.build_active_indexes()
         _mark(job, "embed", "done",
-              "active-corpus indexes rebuilt (bundled + session)")
+              "section-aware index extended with the new company's chunks "
+              "(fixed-size index builds on first use)")
 
         _mark(job, "ready", "done", f"{name} is in the corpus — ask it in Chat")
         if job is not None:

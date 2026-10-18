@@ -44,7 +44,9 @@ class FastEmbedEmbeddings(Embeddings):
     def __init__(self, model_name: str = EMBED_MODEL) -> None:
         from fastembed import TextEmbedding
 
-        self._model = TextEmbedding(model_name)
+        # threads=4 measured slightly faster than the default on this
+        # host; embedding is the pipeline's expensive step either way.
+        self._model = TextEmbedding(model_name, threads=4)
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return [v.tolist() for v in self._model.embed(texts)]
@@ -81,24 +83,68 @@ def _chunk_key(doc: Document) -> tuple:
     return (m.get("doc_label"), m.get("char_start"), m.get("chunk_index"))
 
 
+EMBED_BATCH = 32  # embedding all chunks in one call spikes memory:
+# fastembed tokenizes the whole batch up front (measured OOM kill on
+# 224 long chunks); batches of 32 keep the peak near ~1.3 GB.
+
+
+def _build_faiss(chunks: list[Document], embeddings) -> FAISS:
+    """FAISS over chunks, embedding in batches of EMBED_BATCH."""
+    faiss = FAISS.from_documents(chunks[:EMBED_BATCH], embeddings)
+    for i in range(EMBED_BATCH, len(chunks), EMBED_BATCH):
+        faiss.add_documents(chunks[i:i + EMBED_BATCH])
+    return faiss
+
+
+def _add_batched(faiss: FAISS, chunks: list[Document]) -> None:
+    for i in range(0, len(chunks), EMBED_BATCH):
+        faiss.add_documents(chunks[i:i + EMBED_BATCH])
+
+
 class StrategyIndex:
     """BM25 + FAISS indexes over one strategy's chunks."""
 
-    def __init__(self, strategy: str, chunks: list[Document]) -> None:
+    def __init__(self, strategy: str, chunks: list[Document],
+                 persist: bool = True) -> None:
         self.strategy = strategy
         self.chunks = chunks
         self.bm25 = BM25Retriever.from_documents(chunks)
         self.bm25.k = POOL_SIZE
         index_path = INDEX_DIR / strategy
         embeddings = get_embeddings()
-        if index_path.exists():
+        if persist and index_path.exists():
             self.faiss = FAISS.load_local(
                 str(index_path), embeddings, allow_dangerous_deserialization=True
             )
         else:
-            self.faiss = FAISS.from_documents(chunks, embeddings)
-            INDEX_DIR.mkdir(parents=True, exist_ok=True)
-            self.faiss.save_local(str(index_path))
+            self.faiss = _build_faiss(chunks, embeddings)
+            if persist:
+                INDEX_DIR.mkdir(parents=True, exist_ok=True)
+                self.faiss.save_local(str(index_path))
+
+    @classmethod
+    def extended(cls, base: "StrategyIndex", extra_chunks: list[Document],
+                 ) -> "StrategyIndex":
+        """An index over base.chunks + extra_chunks that reuses the
+        base's bundled vectors — only the extra chunks are embedded
+        (batched). Used for the active corpus: session companies extend
+        the frozen bundled snapshot instead of re-embedding it."""
+        obj = cls.__new__(cls)
+        obj.strategy = base.strategy
+        obj.chunks = base.chunks + extra_chunks
+        obj.bm25 = BM25Retriever.from_documents(obj.chunks)
+        obj.bm25.k = POOL_SIZE
+        embeddings = get_embeddings()
+        index_path = INDEX_DIR / base.strategy
+        if index_path.exists():
+            obj.faiss = FAISS.load_local(
+                str(index_path), embeddings, allow_dangerous_deserialization=True
+            )
+        else:
+            obj.faiss = _build_faiss(base.chunks, embeddings)
+        if extra_chunks:
+            _add_batched(obj.faiss, extra_chunks)
+        return obj
 
     # -- candidate pools ----------------------------------------------------
     def vector_pool(self, query: str, n: int = POOL_SIZE,
@@ -172,25 +218,65 @@ class StrategyIndex:
         return [{**e, "rank": i + 1} for i, e in enumerate(rescored[:k])]
 
 
-_indexes: dict[str, StrategyIndex] = {}
+_indexes: dict[tuple[str, str], StrategyIndex] = {}
 
 
-def get_index(strategy: str) -> StrategyIndex:
-    if strategy not in _indexes:
-        docs = load_bundled_documents()
-        chunks = chunk_corpus(docs, strategy)
-        _indexes[strategy] = StrategyIndex(strategy, chunks)
-    return _indexes[strategy]
+def get_index(strategy: str, corpus: str = "bundled") -> StrategyIndex:
+    """The index for (strategy, corpus).
+
+    * ``bundled`` — the frozen snapshot; its FAISS index persists
+      under ``indexes/`` and loads from disk.
+    * ``active`` — bundled + session-ingested companies. With no
+      session companies it *is* the bundled index (same object). With
+      session companies it extends the bundled index, embedding only
+      the new chunks — re-embedding the whole snapshot per ingestion
+      would cost minutes on CPU and spike memory.
+    """
+    if corpus == "active":
+        from src import registry
+
+        if not registry.session_companies():
+            return get_index(strategy, "bundled")
+    key = (strategy, corpus)
+    if key not in _indexes:
+        if corpus == "active":
+            from src import registry
+
+            base = get_index(strategy, "bundled")
+            extra = chunk_corpus(registry.session_documents(), strategy)
+            _indexes[key] = StrategyIndex.extended(base, extra)
+        else:
+            chunks = chunk_corpus(load_bundled_documents(), strategy)
+            _indexes[key] = StrategyIndex(strategy, chunks)
+    return _indexes[key]
+
+
+def invalidate_indexes(corpus: str | None = None) -> None:
+    """Drop cached indexes (one corpus key, or all) after the corpus
+    changes — e.g. a session company registers."""
+    for key in [k for k in _indexes if corpus is None or k[1] == corpus]:
+        del _indexes[key]
+
+
+def build_active_indexes(strategies: tuple[str, ...] = ("section",)) -> None:
+    """Eagerly build active-corpus indexes (the ingest pipeline's
+    embed stage). Section-aware is the chat default and is built
+    eagerly; other strategies build lazily on first use."""
+    for strategy in strategies:
+        get_index(strategy, "active")
 
 
 def search(query: str, strategy: str = "section", mode: str = "hybrid+rerank",
-           k: int = 4, tickers: set[str] | None = None) -> dict:
+           k: int = 4, tickers: set[str] | None = None,
+           corpus: str = "bundled") -> dict:
     """Search one strategy's index. Returns results + measured latency.
 
     ``tickers`` restricts every candidate pool to those companies —
-    used for per-company retrieval on comparison questions.
+    used for per-company retrieval on comparison questions. ``corpus``
+    selects the bundled snapshot (default; the measured artifacts are
+    pinned to it) or the active corpus.
     """
-    index = get_index(strategy)
+    index = get_index(strategy, corpus)
     started = time.perf_counter()
     results = index.search(query, mode=mode, k=k, tickers=tickers)
     latency_ms = (time.perf_counter() - started) * 1000.0
