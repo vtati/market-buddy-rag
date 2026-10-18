@@ -6,3 +6,8 @@ indexes/
 *.faiss
 *.pkl
 .DS_Store
+data/cache/
+node_modules/
+web/.next/
+web/node_modules/
+~/.cache/
