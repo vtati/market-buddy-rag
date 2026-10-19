@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { Nav } from "@/components/nav";
+import { ChatSessionProvider } from "@/components/chat-session";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -30,7 +31,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background font-sans text-foreground">
         <Nav />
         <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          {children}
+          <ChatSessionProvider>{children}</ChatSessionProvider>
         </main>
         <footer className="mx-auto max-w-7xl px-4 pt-4 pb-10 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-5 text-[12px] text-muted-foreground">

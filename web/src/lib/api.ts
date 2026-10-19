@@ -18,6 +18,13 @@ export interface TraceStep {
   detail: string;
 }
 
+/** What one chat turn resolved to — the client sends it back as the
+ *  next question's context so follow-ups keep their company. */
+export interface ResolvedContext {
+  ticker: string | null;
+  fiscal_year: number | null;
+}
+
 export interface ChatResponse {
   answer: string;
   refused: boolean;
@@ -29,6 +36,9 @@ export interface ChatResponse {
   strategy: string;
   retrieval_mode: string;
   corpus: string;
+  resolved: ResolvedContext | null;
+  /** The standalone rewrite when a follow-up was contextualized. */
+  understood_as: string | null;
 }
 
 export type DocSource = "bundled" | "precached" | "live";
@@ -242,8 +252,15 @@ export async function postChat(
   strategy: string,
   mode: string,
   corpus: string = "active",
+  context?: ResolvedContext | null,
 ): Promise<ChatResponse> {
-  return postJSON<ChatResponse>("/api/chat", { question, strategy, mode, corpus });
+  return postJSON<ChatResponse>("/api/chat", {
+    question,
+    strategy,
+    mode,
+    corpus,
+    ...(context?.ticker ? { context } : {}),
+  });
 }
 
 export const resolveCompany = (query: string) =>

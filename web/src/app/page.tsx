@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, CircleAlert, HelpCircle, Landmark, Sparkles } from "lucide-react";
+import { ArrowUp, CircleAlert, HelpCircle, Landmark, MessageSquarePlus, Sparkles, X } from "lucide-react";
 import {
   fetchCorpus,
   postChat,
   type ChatResponse,
   type CorpusResponse,
 } from "@/lib/api";
+import { useChatSession, type Turn } from "@/components/chat-session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,13 +20,11 @@ import { PendingTrail, StepTrail } from "@/components/step-trail";
 import { Reveal } from "@/components/reveal";
 import { cn } from "@/lib/utils";
 
-interface Turn {
-  id: number;
-  question: string;
-  status: "pending" | "done" | "error";
-  result?: ChatResponse;
-  error?: string;
-}
+const BUNDLED_SHORT_NAMES: Record<string, string> = {
+  AAPL: "Apple",
+  MSFT: "Microsoft",
+  NVDA: "NVIDIA",
+};
 
 function suggestions(teslaIngested: boolean) {
   return [
@@ -126,20 +125,41 @@ function AnswerBlock({ result }: { result: ChatResponse }) {
 }
 
 export default function ChatPage() {
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [input, setInput] = useState("");
-  const [strategy, setStrategy] = useState("section");
-  const [mode, setMode] = useState("hybrid+rerank");
-  const [corpusChoice, setCorpusChoice] = useState("active");
+  // Transcript + conversation context live in the layout-level session
+  // store, so they survive in-app navigation; "New chat" resets them.
+  const {
+    turns, setTurns,
+    input, setInput,
+    strategy, setStrategy,
+    mode, setMode,
+    corpusChoice, setCorpusChoice,
+    context, setContext,
+  } = useChatSession();
   const [pendingStage, setPendingStage] = useState(0);
   const [corpus, setCorpus] = useState<CorpusResponse | null>(null);
+  const [corpusError, setCorpusError] = useState(false);
   const [focusTicker, setFocusTicker] = useState("AAPL");
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
 
-  const refreshCorpus = () =>
-    fetchCorpus().then(setCorpus).catch(() => setCorpus(null));
+  // Corpus stats: retry transient failures (a cold API can take a few
+  // seconds to wake) and never blank out stats we already have — the
+  // "unavailable" notice is reserved for a genuine, repeated failure.
+  const refreshCorpus = async () => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        setCorpus(await fetchCorpus());
+        setCorpusError(false);
+        return;
+      } catch {
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+        }
+      }
+    }
+    setCorpusError(true);
+  };
 
   useEffect(() => {
     refreshCorpus();
@@ -167,7 +187,8 @@ export default function ChatPage() {
     setInput("");
     setBusy(true);
     try {
-      const result = await postChat(q, strategy, mode, corpusChoice);
+      const result = await postChat(q, strategy, mode, corpusChoice, context);
+      if (result.resolved?.ticker) setContext(result.resolved);
       setTurns((t) =>
         t.map((turn) => (turn.id === id ? { ...turn, status: "done", result } : turn)),
       );
@@ -190,6 +211,26 @@ export default function ChatPage() {
       setBusy(false);
       refreshCorpus();
     }
+  }
+
+  /** Explicit reset: clears this conversation (transcript + follow-up
+   *  context). The corpus — bundled and session-ingested companies —
+   *  is untouched; it is the session, not the conversation. */
+  function newChat() {
+    if (busy) return;
+    setTurns([]);
+    setContext(null);
+    setInput("");
+  }
+
+  function contextName(ticker: string): string {
+    const session = (corpus?.session_companies ?? []).find(
+      (c) => c.ticker === ticker,
+    );
+    if (session) {
+      return session.name.replace(/,?\s+(Inc\.?|Corp\.?|Corporation|Company|Ltd\.?)$/i, "");
+    }
+    return BUNDLED_SHORT_NAMES[ticker] ?? ticker;
   }
 
   const sessionCompanies = corpus?.session_companies ?? [];
@@ -236,43 +277,10 @@ export default function ChatPage() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* ——— Conversation column ——— */}
-        <div className="min-w-0">
-          <Reveal delay={0.08}>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                ask(input);
-              }}
-              className="rounded-xl border border-border bg-card p-3"
-            >
-              <label htmlFor="question" className="sr-only">
-                Ask a question about the filings
-              </label>
-              <div className="flex items-end gap-2">
-                <textarea
-                  id="question"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      ask(input);
-                    }
-                  }}
-                  rows={2}
-                  placeholder="e.g. What was Apple's total net sales in fiscal 2024?"
-                  className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-2 py-2 text-[14.5px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
-                />
-                <Button type="submit" disabled={busy || !input.trim()} className="shrink-0">
-                  <ArrowUp className="h-4 w-4" />
-                  Ask
-                </Button>
-              </div>
-            </form>
-          </Reveal>
-
-          <div className="mt-6 space-y-8">
+        {/* ——— Conversation column: transcript scrolls, composer sticks
+            to the bottom of the viewport (ChatGPT-style) ——— */}
+        <div className="flex min-w-0 flex-col">
+          <div className="flex-1 space-y-8">
             {turns.length === 0 && (
               <Reveal delay={0.15}>
                 <div className="rounded-xl border border-dashed border-border px-5 py-8 text-center">
@@ -291,6 +299,14 @@ export default function ChatPage() {
                     <p className="text-[14.5px] leading-relaxed">{turn.question}</p>
                   </div>
                 </div>
+                {turn.status === "done" && turn.result?.understood_as && (
+                  <p className="text-right text-[12.5px] text-muted-foreground">
+                    Understood as:{" "}
+                    <span className="text-foreground/80">
+                      &ldquo;{turn.result.understood_as}&rdquo;
+                    </span>
+                  </p>
+                )}
                 <div className="rounded-xl border border-border bg-card px-5 py-5">
                   {turn.status === "pending" && <PendingTrail stage={pendingStage} />}
                   {turn.status === "error" && (
@@ -339,7 +355,75 @@ export default function ChatPage() {
                 </div>
               </article>
             ))}
-            <div ref={bottomRef} />
+            <div ref={bottomRef} className="scroll-mb-56" />
+          </div>
+
+          {/* ——— Sticky bottom bar: context chip, New chat, composer ——— */}
+          <div className="sticky bottom-0 z-10 -mx-1 bg-gradient-to-t from-background via-background/97 to-transparent px-1 pt-5 pb-3">
+            {(turns.length > 0 || context?.ticker) && (
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                {context?.ticker && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[12px] text-accent-text">
+                    Context: {contextName(context.ticker)}
+                    {context.fiscal_year ? ` · FY${context.fiscal_year}` : ""}
+                    <button
+                      type="button"
+                      aria-label="Clear conversation context"
+                      title="Clear context — keeps the transcript"
+                      onClick={() => setContext(null)}
+                      className="cursor-pointer rounded-full p-0.5 transition-colors hover:bg-primary/20"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                <span className="ml-auto flex items-center gap-3">
+                  <span className="hidden text-[11.5px] text-muted-foreground md:block">
+                    New chat clears this conversation — your corpus stays
+                  </span>
+                  <button
+                    type="button"
+                    onClick={newChat}
+                    disabled={busy}
+                    className="inline-flex min-h-[32px] cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-[12.5px] text-muted-foreground transition-colors duration-200 hover:bg-accent hover:text-foreground disabled:opacity-50"
+                  >
+                    <MessageSquarePlus className="h-3.5 w-3.5" />
+                    New chat
+                  </button>
+                </span>
+              </div>
+            )}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                ask(input);
+              }}
+              className="rounded-xl border border-border bg-card p-3"
+            >
+              <label htmlFor="question" className="sr-only">
+                Ask a question about the filings
+              </label>
+              <div className="flex items-end gap-2">
+                <textarea
+                  id="question"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      ask(input);
+                    }
+                  }}
+                  rows={2}
+                  placeholder="e.g. What was Apple's total net sales in fiscal 2024?"
+                  className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-2 py-2 text-[14.5px] leading-relaxed outline-none placeholder:text-muted-foreground/70"
+                />
+                <Button type="submit" disabled={busy || !input.trim()} className="shrink-0">
+                  <ArrowUp className="h-4 w-4" />
+                  Ask
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
 
@@ -501,9 +585,14 @@ export default function ChatPage() {
                       </p>
                     </div>
                   </>
+                ) : corpusError ? (
+                  <p className="text-[13px] text-muted-foreground">
+                    Corpus stats unavailable right now — chat and retrieval
+                    still work, and this panel retries on the next question.
+                  </p>
                 ) : (
                   <p className="text-[13px] text-muted-foreground">
-                    Corpus stats unavailable — is the API running on port 8000?
+                    Loading corpus stats…
                   </p>
                 )}
               </CardContent>

@@ -6,6 +6,7 @@ import type { TraceStep } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NODE_LABELS: Record<string, string> = {
+  contextualize: "Understanding follow-up",
   scope: "Scoping",
   retrieve: "Retrieving",
   grade: "Grading evidence",
