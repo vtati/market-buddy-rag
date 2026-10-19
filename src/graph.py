@@ -5,6 +5,7 @@ Flow::
     contextualize (follow-ups rewritten against the previous turn's
     resolved context — rules only, no model call)
             └─► scope ──┬─ prediction question ──► refuse
+                        └─ off-topic request ────► refuse (filings only)
             └─► retrieve ──► grade ──┬─ relevant, company named ──► generate ──► verify ─┬─ ok ──► END
                                      │                                                     └─ fail ─► generate (once) ─► verify ─► refuse/END
                                      ├─ relevant, NO company named ──► clarify (which company?)
@@ -176,6 +177,72 @@ _PREDICTION_PATTERNS = (
 
 def _is_prediction_question(question: str) -> bool:
     return any(p.search(question) for p in _PREDICTION_PATTERNS)
+
+
+# ---------------------------------------------------------------------------
+# Off-topic guardrail — this assistant answers filing questions only
+# ---------------------------------------------------------------------------
+# Two deterministic shapes, checked in scope BEFORE retrieval (and so
+# before the clarify route — answering "Which company do you mean?" to
+# "Write a poem about the moon" reads as evasive):
+#
+# * imperative content generation: a write/compose/generate verb with
+#   an artifact noun (program, poem, essay…) and no filing referent;
+# * general knowledge / everyday tasks: no company named and no
+#   filing-domain vocabulary at all.
+#
+# The guards matter as much as the triggers: a question naming a
+# corpus company is never off-topic here (other scope rules judge
+# it), and company-less questions carrying filing vocabulary ("What
+# are the risks?", "How did the company perform?") are filing-SHAPED —
+# they fall through to the clarify path (eval E12/E13/E18).
+_GEN_REQUEST_RE = re.compile(
+    r"\b(write|compose|generate|draft|create|produce|make|code|program|"
+    r"build|design|draw|paint|sing)\b[^.?!]{0,60}?\b(program|code|script|"
+    r"function|poem|story|essay|song|joke|haiku|limerick|letter|e-?mail|"
+    r"resume|cover letter|rap|novel|recipe|image|picture|drawing|"
+    r"painting|app|website|game|python|javascript|typescript|sql)\b",
+    re.IGNORECASE)
+
+_FILING_TERM_STEMS = (
+    "risk", "revenue", "sale", "income", "profit", "earn", "perform",
+    "grow", "fiscal", "filing", "10-k", "10k", "segment", "business",
+    "financial", "margin", "debt", "dividend", "operation", "result",
+    "expense", "asset", "liabilit", "customer", "supplier",
+    "manufactur", "compet", "product", "service", "md&a", "cash flow",
+    "balance sheet", "annual report", "net sales", "supply chain",
+)
+
+
+def _is_off_topic(question: str, corpus: str = "active") -> bool:
+    """True when the request has nothing to do with the filings in
+    the corpus: a content-generation task or a general-knowledge
+    question with no company named and no filing vocabulary."""
+    if _mentioned_tickers(question, corpus):
+        return False
+    if _GEN_REQUEST_RE.search(question):
+        return True
+    low = question.lower()
+    if any(stem in low for stem in _FILING_TERM_STEMS):
+        return False
+    return True  # no company, no filing vocabulary: not a filing question
+
+
+def _off_topic_answer(corpus: str) -> str:
+    """Honest-scope refusal for off-topic requests: says what this
+    assistant DOES answer, naming the active corpus."""
+    allowed = _allowed_tickers(corpus)
+    if allowed == set(registry.BUNDLED_TICKERS):
+        listing = "Apple, Microsoft, and NVIDIA"
+    else:
+        listing, _fig = registry.coverage_sentence(allowed)
+    return (
+        "That's outside what I do — I only answer questions about the "
+        f"10-K filings in my corpus ({listing}: their business, risk "
+        "factors, MD&A and financial statements). Ask me about one of "
+        "those filings and I'll pull the relevant section, with "
+        "citations."
+    )
 
 SYSTEM_PROMPT = """You are Market Buddy, a financial-documents assistant.
 Answer the question using ONLY the context provided below, which comes
@@ -587,6 +654,9 @@ def scope_node(state: GraphState) -> dict:
     if _is_prediction_question(state["question"]):
         return {"refusal_kind": "prediction",
                 "trace": _trace("scope", started, "future-prediction question — not answerable from filings")}
+    if _is_off_topic(state["question"], corpus):
+        return {"refusal_kind": "off_topic",
+                "trace": _trace("scope", started, "off-topic request — this assistant answers filing questions only")}
     if not _mentioned_tickers(state["question"], corpus) and _other_company_mentioned(state["question"], corpus):
         return {"refusal_kind": "other_company",
                 "trace": _trace("scope", started, "named company is not in the corpus")}
@@ -678,7 +748,10 @@ def rewrite_node(state: GraphState) -> dict:
 def refuse_node(state: GraphState) -> dict:
     started = time.perf_counter()
     refusal, out_of_corpus, _clarify = _corpus_answers(state.get("corpus", "active"))
-    if state.get("refusal_kind") == "prediction":
+    if state.get("refusal_kind") == "off_topic":
+        answer = _off_topic_answer(state.get("corpus", "active"))
+        why = "off-topic request — filings only"
+    elif state.get("refusal_kind") == "prediction":
         answer, why = PREDICTION_REFUSAL_ANSWER, "prediction question — filings report the past"
     elif state.get("refusal_kind") == "other_company":
         answer, why = out_of_corpus, "named company is outside the corpus"

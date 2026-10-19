@@ -1,4 +1,4 @@
-"""Week 2 evaluation — 18 questions run end-to-end through the graph.
+"""Week 2 evaluation — 20 questions run end-to-end through the graph.
 
 Set composition (per the handout): 9 answerable factual questions,
 2 multi-document comparisons, 2 ambiguous questions, 2 unanswerable
@@ -6,7 +6,9 @@ questions — plus three scenarios added after the owner's live test:
 a free-form performance question that must be headlined from the
 figures table (E16), a two-turn follow-up that must keep its company
 via conversation context (E17), and the same follow-up with NO
-context, which must clarify rather than guess (E18). Each question
+context, which must clarify rather than guess (E18) — plus two
+off-topic probes (E19/E20) that must get the honest-scope refusal,
+not the company clarification. Each question
 carries an explicit expected behaviour and a mechanical pass rule:
 
 * answerable   — not refused, at least one citation from the expected
@@ -114,6 +116,15 @@ EVAL_QUESTIONS = [
      "question": "Are there any risks with it?",
      "expected": "No context and no company named: clarify which company "
                  "(or refuse) — never silently answer for one company."},
+    # --- off-topic probes (owner request: filings only) --------------------
+    {"id": "E19", "type": "off_topic",
+     "question": "Write a Python program that sorts a list",
+     "expected": "Refuse with the honest-scope copy (filings only) — not "
+                 "content generation, not the company clarification."},
+    {"id": "E20", "type": "off_topic",
+     "question": "What is the capital of France?",
+     "expected": "Refuse with the honest-scope copy (filings only) — a "
+                 "general-knowledge question is not a filing question."},
 ]
 
 _AMBIGUITY_MARKERS = (
@@ -197,6 +208,13 @@ def _judge(q: dict, result: dict) -> tuple[bool, str, bool, str]:
         if result["refused"]:
             return True, "honest refusal", faithful, faith_detail
         return False, "answered a question the corpus cannot support", faithful, faith_detail
+
+    if q["type"] == "off_topic":
+        if not result["refused"]:
+            return False, "answered an off-topic request", faithful, faith_detail
+        if "only answer questions about" not in result["answer"].lower():
+            return False, "refused, but not with the honest-scope copy", faithful, faith_detail
+        return True, "honest-scope refusal for an off-topic request", faithful, faith_detail
     raise ValueError(q["type"])
 
 
@@ -309,6 +327,8 @@ def render_doc(results: dict) -> str:
         "  flags that no company was named; silently answering for one",
         "  company is scored as a failure, by design.",
         "* Unanswerable questions pass only on an honest refusal.",
+        "* Off-topic requests (content generation, general knowledge) pass",
+        "  only on the honest-scope refusal — never the clarification.",
         "",
         "Raw output: `results/eval.json` (regenerate with `python -m src.evaluate`).",
     ]

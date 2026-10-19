@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-19T00:12:06.941583+00:00",
+  "generated_at": "2026-10-19T02:44:37.802464+00:00",
   "mode": "extractive (no LLM key configured)",
-  "total": 18,
-  "passed": 18,
+  "total": 20,
+  "passed": 20,
   "pass_rate": 1.0,
   "faithfulness_rate_answered": 1.0,
-  "mean_latency_ms": 6711.5,
+  "mean_latency_ms": 9445.2,
   "rows": [
     {
       "id": "E1",
@@ -27,33 +27,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.5,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 9837.7,
+          "latency_ms": 13742.9,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.599; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 13455.7,
+          "latency_ms": 13082.5,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 6.09, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 26.2,
+          "latency_ms": 42.5,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 29.2,
+          "latency_ms": 37.7,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 23471.5,
+      "latency_ms": 27119.5,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -86,28 +86,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 4024.1,
+          "latency_ms": 4789.6,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 0.859; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 4517.6,
+          "latency_ms": 5605.8,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 5.24, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 15.6,
+          "latency_ms": 74.7,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 18.3,
+          "latency_ms": 57.8,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 8601.2,
+      "latency_ms": 10554.3,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -140,28 +140,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 3781.7,
+          "latency_ms": 4204.6,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -2.121"
         },
         {
           "node": "grade",
-          "latency_ms": 2636.6,
+          "latency_ms": 3338.9,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -2.80, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 39.5,
+          "latency_ms": 25.4,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 17.1,
+          "latency_ms": 9.9,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 6499.8,
+      "latency_ms": 7591.4,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -185,33 +185,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 4317.0,
+          "latency_ms": 4945.8,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.439"
         },
         {
           "node": "grade",
-          "latency_ms": 3864.3,
+          "latency_ms": 3511.8,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 4.47, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 7.3,
+          "latency_ms": 9.7,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 6.7,
+          "latency_ms": 31.6,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 8230.4,
+      "latency_ms": 8521.4,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -240,28 +240,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 3805.2,
+          "latency_ms": 3948.3,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.324"
         },
         {
           "node": "grade",
-          "latency_ms": 3825.8,
+          "latency_ms": 4067.2,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best 4.85, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 27.0,
+          "latency_ms": 35.0,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 21.2,
+          "latency_ms": 141.3,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 7731.3,
+      "latency_ms": 8211.3,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -285,33 +285,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 7.6,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 3987.4,
+          "latency_ms": 5302.2,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -1.391"
         },
         {
           "node": "grade",
-          "latency_ms": 2844.9,
+          "latency_ms": 4501.1,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best -3.14, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 33.3,
+          "latency_ms": 106.2,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 66.9,
+          "latency_ms": 18.6,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 6979.3,
+      "latency_ms": 9960.7,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -340,28 +340,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 3987.1,
+          "latency_ms": 4848.5,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.661; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 2408.2,
+          "latency_ms": 3275.6,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best 2.79, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 16.3,
+          "latency_ms": 142.8,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 6.7,
+          "latency_ms": 17.5,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 6461.5,
+      "latency_ms": 8303.4,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -389,33 +389,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 3724.1,
+          "latency_ms": 5172.6,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.219"
         },
         {
           "node": "grade",
-          "latency_ms": 2489.3,
+          "latency_ms": 3298.8,
           "detail": "company-match grade: NVDA in top-3 = True (windowed cross-encoder best 4.52, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 18.2,
+          "latency_ms": 6.5,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 12.9,
+          "latency_ms": 8.7,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 6281.5,
+      "latency_ms": 8499.1,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -444,28 +444,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 3640.8,
+          "latency_ms": 4823.7,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -0.954"
         },
         {
           "node": "grade",
-          "latency_ms": 2708.0,
+          "latency_ms": 4401.4,
           "detail": "company-match grade: NVDA in top-3 = True (windowed cross-encoder best 0.52, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 88.0,
+          "latency_ms": 24.2,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 31.3,
+          "latency_ms": 25.1,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 6516.9,
+      "latency_ms": 9287.8,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -498,28 +498,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 5378.0,
+          "latency_ms": 10543.3,
           "detail": "per-company retrieval for ['AAPL', 'MSFT']: 8 merged candidates via hybrid+rerank on section chunks"
         },
         {
           "node": "grade",
-          "latency_ms": 723.4,
+          "latency_ms": 1303.8,
           "detail": "company-match grade (comparison): covered ['AAPL', 'MSFT'], missing [] in merged top-8 (windowed cross-encoder best -0.09, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 14.5,
+          "latency_ms": 25.9,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 38.5,
+          "latency_ms": 32.5,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 6167.4,
+      "latency_ms": 11931.1,
       "pass": true,
       "note": "both companies cited; numbers verified"
     },
@@ -552,28 +552,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 5558.7,
+          "latency_ms": 12812.9,
           "detail": "per-company retrieval for ['AAPL', 'NVDA']: 8 merged candidates via hybrid+rerank on section chunks"
         },
         {
           "node": "grade",
-          "latency_ms": 2131.8,
+          "latency_ms": 5101.0,
           "detail": "company-match grade (comparison): covered ['AAPL', 'NVDA'], missing [] in merged top-8 (windowed cross-encoder best -1.56, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 15.5,
+          "latency_ms": 217.9,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 7.5,
+          "latency_ms": 20.1,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 7745.0,
+      "latency_ms": 18197.3,
       "pass": true,
       "note": "both companies cited; numbers verified"
     },
@@ -588,17 +588,17 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 25.4,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 3053.4,
+          "latency_ms": 7278.2,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -5.621"
         },
         {
           "node": "grade",
-          "latency_ms": 2476.3,
+          "latency_ms": 5409.9,
           "detail": "windowed cross-encoder top score -4.50 (threshold 0.0)"
         },
         {
@@ -609,7 +609,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 5564.2,
+      "latency_ms": 12749.0,
       "pass": true,
       "note": "answer explicitly flags the ambiguity"
     },
@@ -624,17 +624,17 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.1,
+          "latency_ms": 2.4,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 2121.2,
+          "latency_ms": 5416.1,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 2.396"
         },
         {
           "node": "grade",
-          "latency_ms": 963.0,
+          "latency_ms": 1618.1,
           "detail": "windowed cross-encoder top score 3.05 (threshold 0.0)"
         },
         {
@@ -645,7 +645,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 3091.0,
+      "latency_ms": 7064.8,
       "pass": true,
       "note": "answer explicitly flags the ambiguity"
     },
@@ -665,13 +665,13 @@
         },
         {
           "node": "refuse",
-          "latency_ms": 0.8,
+          "latency_ms": 0.0,
           "detail": "honest refusal \u2014 named company is outside the corpus"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 11.3,
+      "latency_ms": 5.5,
       "pass": true,
       "note": "honest refusal"
     },
@@ -697,7 +697,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 10.1,
+      "latency_ms": 2.8,
       "pass": true,
       "note": "honest refusal"
     },
@@ -722,28 +722,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 2632.9,
+          "latency_ms": 5717.7,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -8.720; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 2173.2,
+          "latency_ms": 4815.6,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -7.89, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 24.3,
+          "latency_ms": 111.0,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 19.6,
+          "latency_ms": 65.7,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 4870.9,
+      "latency_ms": 10784.6,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -763,7 +763,7 @@
       "trace": [
         {
           "node": "contextualize",
-          "latency_ms": 0.1,
+          "latency_ms": 0.0,
           "detail": "Understood as: What are Apple's principal risk factors?"
         },
         {
@@ -773,28 +773,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1882.4,
+          "latency_ms": 5389.0,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -1.078"
         },
         {
           "node": "grade",
-          "latency_ms": 1365.9,
+          "latency_ms": 3393.8,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -3.36, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 8.5,
+          "latency_ms": 58.2,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 29.6,
+          "latency_ms": 82.7,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 8461.1,
+      "latency_ms": 20167.4,
       "pass": true,
       "note": "context kept; answered with gold-section citation; numbers verified"
     },
@@ -814,12 +814,12 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 2648.3,
+          "latency_ms": 6260.6,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 0.078"
         },
         {
           "node": "grade",
-          "latency_ms": 1447.2,
+          "latency_ms": 3641.8,
           "detail": "windowed cross-encoder top score -0.49 (threshold 0.0)"
         },
         {
@@ -830,9 +830,61 @@
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 4111.9,
+      "latency_ms": 9908.8,
       "pass": true,
       "note": "answer explicitly flags the ambiguity"
+    },
+    {
+      "id": "E19",
+      "type": "off_topic",
+      "question": "Write a Python program that sorts a list",
+      "expected": "Refuse with the honest-scope copy (filings only) \u2014 not content generation, not the company clarification.",
+      "refused": true,
+      "answer": "That's outside what I do \u2014 I only answer questions about the 10-K filings in my corpus (Apple, Microsoft, and NVIDIA: their business, risk factors, MD&A and financial statements). Ask me about one of those filings and I'll pull the relevant section, with citations.",
+      "citations": [],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.1,
+          "detail": "off-topic request \u2014 this assistant answers filing questions only"
+        },
+        {
+          "node": "refuse",
+          "latency_ms": 0.0,
+          "detail": "honest refusal \u2014 off-topic request \u2014 filings only"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "n/a (refused)",
+      "latency_ms": 8.7,
+      "pass": true,
+      "note": "honest-scope refusal for an off-topic request"
+    },
+    {
+      "id": "E20",
+      "type": "off_topic",
+      "question": "What is the capital of France?",
+      "expected": "Refuse with the honest-scope copy (filings only) \u2014 a general-knowledge question is not a filing question.",
+      "refused": true,
+      "answer": "That's outside what I do \u2014 I only answer questions about the 10-K filings in my corpus (Apple, Microsoft, and NVIDIA: their business, risk factors, MD&A and financial statements). Ask me about one of those filings and I'll pull the relevant section, with citations.",
+      "citations": [],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.1,
+          "detail": "off-topic request \u2014 this assistant answers filing questions only"
+        },
+        {
+          "node": "refuse",
+          "latency_ms": 0.0,
+          "detail": "honest refusal \u2014 off-topic request \u2014 filings only"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "n/a (refused)",
+      "latency_ms": 34.5,
+      "pass": true,
+      "note": "honest-scope refusal for an off-topic request"
     }
   ]
 }
