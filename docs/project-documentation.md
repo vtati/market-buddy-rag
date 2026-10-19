@@ -33,14 +33,16 @@ A retrieval-augmented Q&A system over real 10-K filings, in four parts:
    Next.js 15 UI in the Market Buddy design language (Obsidian &
    Champagne) with three pages — Chat (live step trail, expandable
    evidence cards, strategy/mode switches), Chunking Lab (the measured
-   comparison), and Eval Dashboard (the 15-question evaluation,
+   comparison), and Eval Dashboard (the 20-question evaluation,
    expandable per question).
 
-Quality gates that ship with it: a 12-test pytest suite (chunking
+Quality gates that ship with it: a 75-test pytest suite (chunking
 invariants, figures-table values, retrieval determinism, graph
-refusal/answer paths) and the 15-question evaluation described in
-`docs/evaluation-report.md` — **15/15 passed, 100% faithfulness among
-answered questions, mean latency ~3.0 s** in the final measured run.
+refusal/answer paths, conversation context, performance routing,
+ingest refresh, slicing robustness, market layer) and the 20-question
+evaluation described in `docs/evaluation-report.md` — **20/20 passed,
+100% faithfulness among answered questions, mean latency ~3.0 s** in
+the final measured run.
 
 ## (b) Datasets used — corpus sources, sizes, provenance
 
@@ -82,8 +84,10 @@ Derived datasets built for measurement (both committed in `src/`):
 - **12 gold questions** (`src/questions.py`) with known relevant
   companies and Item sections, used by the chunking × retrieval
   comparison experiment.
-- **15 evaluation questions** (`src/evaluate.py`): 9 answerable
-  factual, 2 multi-document comparisons, 2 ambiguous, 2 unanswerable —
+- **18 evaluation questions** (`src/evaluate.py`): 13 answerable
+  (9 factual, a figures-headlined performance question, a two-turn
+  conversation follow-up, and per-company factuals), 2 multi-document
+  comparisons, 3 ambiguous that must be clarified, 2 unanswerable —
   each with an explicit expected behaviour and a mechanical pass rule.
 
 ## (c) Prompts and agent instructions used
@@ -213,6 +217,41 @@ patch:
    420→800 chars, retrieval-rank bonus, and **per-company comparison
    composition**.
 5. **Run 5 — 15/15**, faithfulness 100%, mean latency ~3.0 s.
+6. **Run 6 — 18/18 (the live-testing tuning release).** The deployed
+   demo was then tested end-to-end by the project owner, whose own
+   questions exposed three defects the 15-question harness could not
+   see: follow-up questions lost the conversation (no context was
+   carried between turns), free-form performance questions retrieved
+   definitional boilerplate instead of figures, and re-adding an
+   already-ingested company was a silent no-op. Fixes: a deterministic
+   contextualizer resolves follow-ups against the previous turn's
+   company before scoping — and clarifies when there is no context;
+   performance questions are headlined deterministically from the
+   figures table (latest fiscal year first, YoY deltas computed, in
+   both extractive and LLM modes); session re-adds compare EDGAR
+   accessions and refresh when a newer filing exists. The same round
+   hardened the Item slicer (Netflix's `Item 1.Business` headings —
+   no space after the period — had defeated it), pinned the chat
+   composer to the bottom of the screen, added New chat with a
+   visible context chip, and made the transcript survive navigation.
+   The owner's three questions became scenarios E16–E18 and the unit
+   suite grew to 41 tests.
+
+7. **Run 7 — 20/20 (owner live-test follow-ups).** Three more
+   owner-directed changes. (a) Adding a *bundled* company no longer
+   short-circuits to the frozen snapshot: it runs the live pipeline
+   and registers a session copy of the complete latest 10-K alongside
+   it — the owner's test case was Apple, whose snapshot is a composite
+   (FY2024 Items 7/7A/8 + FY2025 Items 1/1A) that lacks FY2025's
+   Item 7 MD&A; the bundled snapshot itself, and every measurement
+   pinned to it, are unchanged. (b) Off-topic requests (code, poems,
+   general knowledge) get the honest-scope refusal at the scope stage
+   instead of the company clarification — scenarios E19/E20 — while
+   filing-shaped questions without a company still clarify (E12/E13/
+   E18). (c) The public demo gained abuse limits: per-visitor and
+   daily chat caps, ingest caps, and a concurrency guard, answered
+   with HTTP 429 and a friendly in-product message. The unit suite
+   grew to 75 tests.
 
 **Interface iteration.** The initial plan was a Streamlit app; the
 project owner replaced it with the house product stack (Next.js +

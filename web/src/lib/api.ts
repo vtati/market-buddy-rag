@@ -242,7 +242,11 @@ async function postJSON<T>(path: string, payload: unknown): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `${path} failed: ${res.status}`);
+    const err = new Error(
+      body.detail ?? `${path} failed: ${res.status}`,
+    ) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
   }
   return (await res.json()) as T;
 }
@@ -254,13 +258,36 @@ export async function postChat(
   corpus: string = "active",
   context?: ResolvedContext | null,
 ): Promise<ChatResponse> {
-  return postJSON<ChatResponse>("/api/chat", {
-    question,
-    strategy,
-    mode,
-    corpus,
-    ...(context?.ticker ? { context } : {}),
-  });
+  try {
+    return await postJSON<ChatResponse>("/api/chat", {
+      question,
+      strategy,
+      mode,
+      corpus,
+      ...(context?.ticker ? { context } : {}),
+    });
+  } catch (err) {
+    // A 429 is a public-demo rate limit, not a failure: render the
+    // API's friendly message as a normal (refused) answer turn so the
+    // conversation reads honestly instead of showing a raw error.
+    if ((err as { status?: number }).status === 429) {
+      return {
+        answer: (err as Error).message,
+        refused: true,
+        clarification: false,
+        citations: [],
+        trace: [],
+        mode: "extractive",
+        latency_ms: 0,
+        strategy,
+        retrieval_mode: mode,
+        corpus,
+        resolved: null,
+        understood_as: null,
+      };
+    }
+    throw err;
+  }
 }
 
 export const resolveCompany = (query: string) =>

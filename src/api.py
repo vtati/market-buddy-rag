@@ -21,6 +21,12 @@ Endpoints:
     GET  /api/market/filing-figures -> corpus figures table by year
     GET  /api/health             -> liveness + generation mode
 
+Public-demo abuse limits (src/rate_limit.py, in-memory, env-tuned):
+chat is capped per visitor IP per hour plus a global daily circuit
+breaker and a concurrency guard; ingest is capped per IP per hour
+and the session corpus has a company cap. Excess -> HTTP 429 with a
+friendly in-product message.
+
 Run: ``uvicorn src.api:app --port 8000`` (the Next.js app in web/
 expects it at NEXT_PUBLIC_API_BASE, default http://localhost:8000).
 """
@@ -32,7 +38,7 @@ import os
 import re
 import threading
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -40,9 +46,14 @@ from src import edgar, market, registry, session_ingest
 from src.chunking import STRATEGIES, chunk_corpus
 from src.graph import get_llm, run
 from src.ingest import REPO_ROOT, find_item_sections, load_bundled_documents
+from src.rate_limit import RateLimiter, client_ip
 from src.retrieval import EMBED_MODEL, MODES, RERANK_MODEL
 
 app = FastAPI(title="Market Buddy RAG — Week 2 demo API", version="1.0.0")
+
+# Public-demo abuse limits — see src/rate_limit.py. In-memory: the
+# counters reset on redeploy, acceptable at demo scale.
+limiter = RateLimiter.from_env()
 
 # Local dev origins are always allowed; deployed front-ends are added
 # via the ALLOWED_ORIGINS env var (comma-separated), e.g. on Railway:
@@ -120,7 +131,7 @@ def health() -> dict:
 
 
 @app.post("/api/chat")
-def chat(req: ChatRequest) -> dict:
+def chat(req: ChatRequest, request: Request) -> dict:
     if req.strategy not in STRATEGIES:
         raise HTTPException(400, f"strategy must be one of {sorted(STRATEGIES)}")
     if req.mode not in MODES:
@@ -130,9 +141,17 @@ def chat(req: ChatRequest) -> dict:
         raise HTTPException(
             400, f"unknown corpus {req.corpus!r} — use 'active', 'bundled', "
                  "or a bundled/session ticker")
-    result = run(req.question, strategy=req.strategy,
-                 retrieval_mode=req.mode, corpus=corpus,
-                 context=req.context.model_dump() if req.context else None)
+    limited = limiter.check_chat(client_ip(request))
+    if limited is not None:
+        raise HTTPException(429, limited)
+    if not limiter.try_acquire_chat():
+        raise HTTPException(429, limiter.concurrency_message())
+    try:
+        result = run(req.question, strategy=req.strategy,
+                     retrieval_mode=req.mode, corpus=corpus,
+                     context=req.context.model_dump() if req.context else None)
+    finally:
+        limiter.release_chat()
     return {
         "answer": result["answer"],
         "refused": result["refused"],
@@ -163,11 +182,17 @@ def ingest_resolve(req: ResolveRequest) -> dict:
 
 
 @app.post("/api/ingest")
-def ingest_start(req: IngestRequest) -> dict:
+def ingest_start(req: IngestRequest, request: Request) -> dict:
     """Start a background ingest job for one ticker."""
     ticker = req.ticker.strip().upper()
     if not _TICKER_RE.match(ticker):
         raise HTTPException(400, f"invalid ticker {req.ticker!r}")
+    session = registry.session_companies()
+    limited = limiter.check_ingest(
+        client_ip(request), session_company_count=len(session),
+        already_registered=ticker in session)
+    if limited is not None:
+        raise HTTPException(429, limited)
     job = session_ingest.create_job(ticker)
     threading.Thread(target=session_ingest.run_job, args=(job,),
                      daemon=True).start()

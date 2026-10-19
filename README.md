@@ -63,7 +63,7 @@ there.
   a conversation-context chip and a New chat control (clears the
   conversation, never the corpus), an Add a Company page with a
   live pipeline visualizer, a Chunking Lab with the measured
-  comparison, and an Eval Dashboard with the 18-question results.
+  comparison, and an Eval Dashboard with the 20-question results.
 
 ## Architecture
 
@@ -140,7 +140,7 @@ registers, "What was Tesla's revenue in fiscal 2024?" goes from an
 honest refusal to a cited answer. Chat accepts a corpus selector —
 `active` (bundled + session, the default), `bundled`, or one ticker.
 The measured artifacts never move: the comparison experiment and the
-18-question evaluation are pinned to the bundled corpus, and the Lab
+20-question evaluation are pinned to the bundled corpus, and the Lab
 and Eval pages say so ("Measured on the bundled corpus (AAPL · MSFT ·
 NVDA snapshot, Oct 2026). Session-ingested companies are not part of
 these measurements.").
@@ -212,7 +212,7 @@ pays the ~2.4 s.
 performance question, a two-turn follow-up that must keep its company
 via context, and the same follow-up with no context, which must
 clarify), `python -m src.evaluate`, report in
-`docs/evaluation-report.md`: **18/18 passed, faithfulness 100% among
+`docs/evaluation-report.md`: **20/20 passed, faithfulness 100% among
 answered questions** in extractive mode on local CPU. The first
 measured run of the original 15 passed 8/15; the failure analysis
 and the mechanism-level fixes are documented in
@@ -289,7 +289,7 @@ src/chunking.py     fixed vs section-aware chunking
 src/retrieval.py    FAISS + BM25, RRF fusion, cross-encoder rerank
 src/experiments.py  chunking x retrieval comparison experiment
 src/graph.py        LangGraph Q&A app (contextualize/scope/retrieve/grade/rewrite/generate/verify/refuse/clarify)
-src/evaluate.py     18-question evaluation harness
+src/evaluate.py     20-question evaluation harness
 src/questions.py    gold question sets
 src/api.py          FastAPI backend for the web UI
 web/                Next.js 15 UI (Chat, Add a Company, Chunking Lab, Eval Dashboard)
@@ -300,6 +300,26 @@ results/            measured outputs (comparison.json, eval.json)
 docs/               framework.md, comparison.md, evaluation-report.md, project-documentation.md
 tests/              pytest suite
 ```
+
+## Public demo limits
+
+The deployed demo is an open site, and in LLM mode every question
+burns the owner's API key — so the API rate-limits itself
+(`src/rate_limit.py`, HTTP 429 with a friendly in-product message):
+
+- **Chat** — 30 questions per visitor IP per hour
+  (`CHAT_LIMIT_PER_HOUR`), a global circuit breaker of 600 questions
+  per day across all visitors (`CHAT_DAILY_CAP`), and at most 4
+  generations in flight at once (`CHAT_MAX_CONCURRENCY`).
+- **Add a Company** — 6 ingests per visitor IP per hour
+  (`INGEST_LIMIT_PER_HOUR`); the session corpus holds at most 40
+  live-ingested companies (`SESSION_COMPANY_CAP`). Re-adding a
+  company that is already registered (the refresh path) is never
+  blocked by the cap.
+
+Visitor identity is the first `X-Forwarded-For` hop (the site is
+reached through the Vercel rewrite proxy). Counters are in-memory
+and reset on redeploy — acceptable at demo scale.
 
 ## Honest limitations
 
