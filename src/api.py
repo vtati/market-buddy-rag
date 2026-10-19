@@ -1,9 +1,12 @@
 """FastAPI backend for the Week 2 demo UI.
 
 Endpoints:
-    POST /api/chat              {question, strategy?, mode?, corpus?}
+    POST /api/chat              {question, strategy?, mode?, corpus?,
+                                    context? {ticker, fiscal_year}}
                                 -> {answer, refused, clarification,
-                                    citations[], trace[], mode, latency_ms}
+                                    citations[], trace[], mode, latency_ms,
+                                    resolved {ticker, fiscal_year},
+                                    understood_as}
     POST /api/ingest/resolve    {query} -> {candidates[]} (SEC map)
     POST /api/ingest            {ticker} -> {job_id} (background job)
     GET  /api/ingest/status/id  -> {stage, stages[], result?, error?}
@@ -74,6 +77,14 @@ def _startup() -> None:
     threading.Thread(target=_warm, daemon=True).start()
 
 
+class ChatContext(BaseModel):
+    """The previous turn's resolved values — sent back by the client so
+    follow-up questions ("Are there any risks with it?") keep their
+    company. Both fields may be null (no usable context)."""
+    ticker: str | None = None
+    fiscal_year: int | None = None
+
+
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
     strategy: str = "section"
@@ -81,6 +92,7 @@ class ChatRequest(BaseModel):
     # "active" (bundled + session companies, default), "bundled" (the
     # frozen snapshot), or a ticker restricting scope + retrieval.
     corpus: str = "active"
+    context: ChatContext | None = None
 
 
 class ResolveRequest(BaseModel):
@@ -119,11 +131,14 @@ def chat(req: ChatRequest) -> dict:
             400, f"unknown corpus {req.corpus!r} — use 'active', 'bundled', "
                  "or a bundled/session ticker")
     result = run(req.question, strategy=req.strategy,
-                 retrieval_mode=req.mode, corpus=corpus)
+                 retrieval_mode=req.mode, corpus=corpus,
+                 context=req.context.model_dump() if req.context else None)
     return {
         "answer": result["answer"],
         "refused": result["refused"],
         "clarification": result.get("clarification", False),
+        "resolved": result.get("resolved"),
+        "understood_as": result.get("understood_as"),
         "citations": [
             {"doc": c["doc"], "section": c["section"], "excerpt": c["excerpt"],
              "span": c["span"], "score": c["score"]}

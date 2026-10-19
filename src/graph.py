@@ -2,7 +2,9 @@
 
 Flow::
 
-    scope ──┬─ prediction question ──► refuse
+    contextualize (follow-ups rewritten against the previous turn's
+    resolved context — rules only, no model call)
+            └─► scope ──┬─ prediction question ──► refuse
             └─► retrieve ──► grade ──┬─ relevant, company named ──► generate ──► verify ─┬─ ok ──► END
                                      │                                                     └─ fail ─► generate (once) ─► verify ─► refuse/END
                                      ├─ relevant, NO company named ──► clarify (which company?)
@@ -238,6 +240,8 @@ class GraphState(TypedDict, total=False):
     strategy: str
     retrieval_mode: str
     corpus: str
+    context: dict
+    understood_as: str
     query: str
     results: list[dict]
     grade_score: float
@@ -291,6 +295,207 @@ def _citations_from(results: list[dict], limit: int = 4) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Conversation context — deterministic follow-up rewriting
+# ---------------------------------------------------------------------------
+
+_ANAPHORA_WORDS = {"it", "its", "they", "them", "their", "this", "that"}
+
+
+def _contextualize(question: str, context: dict | None,
+                   corpus: str = "active") -> str | None:
+    """Rewrite a follow-up question into a standalone one using the
+    previous turn's resolved context — rules only, no model call.
+
+    Returns the rewritten question, or None when no rewrite applies:
+    no context ticker, the context ticker isn't in the allowed corpus,
+    or the question names a company of its own (then it isn't a
+    follow-up at all). A company-less question WITH context is a
+    follow-up by definition here — and with NO context it falls
+    through to the existing clarify path, never a guess.
+    """
+    if not context or not context.get("ticker"):
+        return None
+    ticker = str(context["ticker"]).upper()
+    if ticker not in _allowed_tickers(corpus):
+        return None
+    if _mentioned_tickers(question, corpus):
+        return None
+    name = registry.short_name(ticker)
+    possessive = name if name.endswith("s") else f"{name}'s"
+    low = question.lower()
+
+    if "risk" in low:
+        return f"What are {possessive} principal risk factors?"
+
+    def _sub(pattern: str, repl: str, text: str) -> str:
+        def f(m: re.Match) -> str:
+            return repl.capitalize() if m.group(0)[:1].isupper() else repl
+        return re.sub(pattern, f, text)
+
+    out = question
+    out = _sub(r"\bthe company\b", name, out)
+    out = _sub(r"\bits\b", possessive, out)
+    out = _sub(r"\btheir\b", possessive, out)
+    out = _sub(r"\b(it|they|them|this|that)\b", name, out)
+    if out == question:
+        # Elliptical with no anaphora to substitute ("And in 2023?"):
+        # anchor it to the context company explicitly.
+        out = f"Regarding {name}: {question}"
+    fy = context.get("fiscal_year")
+    if (fy and not _YEAR_RE.search(out) and _FIGURE_TRIGGER.search(out)):
+        out = re.sub(r"\?\s*$", "", out).rstrip() + f" in fiscal {fy}?"
+    return out
+
+
+def contextualize_node(state: GraphState) -> dict:
+    """Entry step: resolve follow-ups against the conversation context
+    BEFORE scope runs, so every downstream node sees a standalone
+    question. Silent (no trace entry) when nothing was rewritten."""
+    started = time.perf_counter()
+    rewritten = _contextualize(state["question"], state.get("context"),
+                               state.get("corpus", "active"))
+    if not rewritten or rewritten == state["question"]:
+        return {}
+    return {"question": rewritten, "query": rewritten,
+            "understood_as": rewritten,
+            "trace": _trace("contextualize", started,
+                            f"Understood as: {rewritten}")}
+
+
+def _resolved_for(question: str, corpus: str) -> dict:
+    """What this turn resolved to — sent back to the client and
+    accepted as the next turn's context."""
+    mentioned = _mentioned_tickers(question, corpus)
+    ticker = next(iter(mentioned)) if len(mentioned) == 1 else None
+    fiscal_year = None
+    years = _YEAR_RE.findall(question)
+    if years:
+        fiscal_year = int(years[-1])
+    elif ticker and re.search(r"\blast year\b|\bmost recent\b|\blatest\b",
+                              question, re.IGNORECASE):
+        rows = [f for f in registry.all_figures() if f["ticker"] == ticker]
+        if rows:
+            fiscal_year = max(f["fiscal_year"] for f in rows)
+    return {"ticker": ticker, "fiscal_year": fiscal_year}
+
+
+# ---------------------------------------------------------------------------
+# Performance intent — figures headline + ranking adjustment
+# ---------------------------------------------------------------------------
+
+_PERF_TRIGGERS = ("perform", "how did", "results", "earnings", "growth",
+                  "sales", "revenue", "last year", "most recent")
+_BOILERPLATE_MARKERS = ("52- or 53-week", "this item generally discusses",
+                        "forward-looking statements")
+_DEFINITION_RE = re.compile(r"\b(define|definition|meaning of|what does .{0,40} mean)\b",
+                            re.IGNORECASE)
+_FIGUREY_RE = re.compile(r"\$\s?\d|\d(?:\.\d+)?\s?%")
+
+
+def _performance_intent(question: str, corpus: str = "active") -> tuple[str, int] | None:
+    """(ticker, fiscal_year) when the question asks how ONE company
+    performed and the figures table can headline it: the company needs
+    revenue rows for the target year and the year before it. An
+    explicit year in the question wins; otherwise the latest fiscal
+    year in the table ("last year" / "most recent")."""
+    mentioned = _mentioned_tickers(question, corpus)
+    if len(mentioned) != 1:
+        return None
+    low = question.lower()
+    if not any(t in low for t in _PERF_TRIGGERS):
+        return None
+    ticker = next(iter(mentioned))
+    rev_years = sorted({f["fiscal_year"] for f in registry.all_figures()
+                        if f["ticker"] == ticker
+                        and f["concept"] == "Total revenue"})
+    if len(rev_years) < 2:
+        return None
+    years = _YEAR_RE.findall(question)
+    target = int(years[-1]) if years and int(years[-1]) in rev_years \
+        else rev_years[-1]
+    if target == rev_years[0]:
+        return None  # no prior year to compare against
+    return ticker, target
+
+
+def _intent_adjust(question: str, results: list[dict],
+                   corpus: str = "active") -> tuple[list[dict], bool]:
+    """Re-rank retrieved chunks for figure/performance questions:
+    figure-bearing chunks up, definitional boilerplate down (stable —
+    relative order otherwise preserved). The owner's screenshot
+    failure was MD&A boilerplate (the fiscal-year definition, "This
+    Item generally discusses…") outranking the results passages.
+    Skipped for definition questions, which WANT the boilerplate."""
+    if _DEFINITION_RE.search(question):
+        return results, False
+    if (_performance_intent(question, corpus) is None
+            and not _FIGURE_TRIGGER.search(question)):
+        return results, False
+
+    def key(item: tuple[int, dict]) -> tuple[int, int, int]:
+        idx, r = item
+        head = r["text"][:900].lower()
+        boiler = any(m in head for m in _BOILERPLATE_MARKERS)
+        return (1 if boiler else 0,
+                0 if _FIGUREY_RE.search(r["text"]) else 1,
+                idx)
+
+    adjusted = [r for _i, r in sorted(enumerate(results), key=key)]
+    return adjusted, adjusted != results
+
+
+def _performance_headline(state: GraphState) -> tuple[str, dict] | None:
+    """A composed headline from the figures table for performance
+    questions: revenue + net income for the target fiscal year against
+    the year before, with YoY % — every number a figures-table row,
+    cited to SEC company facts. Leads the answer; retrieved passages
+    then support it."""
+    found = _performance_intent(state["question"], state.get("corpus", "active"))
+    if not found:
+        return None
+    ticker, year = found
+    figs = registry.all_figures()
+
+    def row(concept: str, fy: int) -> dict | None:
+        return next((f for f in figs if f["ticker"] == ticker
+                     and f["concept"] == concept
+                     and f["fiscal_year"] == fy), None)
+
+    name = registry.short_name(ticker)
+    sentences: list[str] = []
+    used_rows: list[dict] = []
+    for concept, label in (("Total revenue", "total revenue"),
+                           ("Net income", "net income")):
+        cur, prev = row(concept, year), row(concept, year - 1)
+        if cur is None:
+            continue
+        used_rows.append(cur)
+        if prev is None:
+            sentences.append(
+                f"{name} reported {label} of ${cur['value_usd']:,} for "
+                f"fiscal year {year} (period ended {cur['period_end']}).")
+            continue
+        used_rows.append(prev)
+        pct = (cur["value_usd"] - prev["value_usd"]) / prev["value_usd"] * 100
+        direction = "up" if pct >= 0 else "down"
+        verb = "reported" if concept == "Total revenue" else "posted"
+        sentences.append(
+            f"{name} {verb} {label} of ${cur['value_usd']:,} for fiscal "
+            f"year {year}, {direction} {abs(pct):.2f}% from "
+            f"${prev['value_usd']:,} in fiscal year {year - 1}.")
+    if not sentences:
+        return None
+    citation = {
+        "doc": f"{ticker} · SEC company facts",
+        "section": "Figures table",
+        "span": [0, 0],
+        "excerpt": figures_as_text(used_rows),
+        "score": 0.0,
+    }
+    return " ".join(sentences), citation
+
+
+# ---------------------------------------------------------------------------
 # Nodes
 # ---------------------------------------------------------------------------
 
@@ -333,12 +538,16 @@ def retrieve_node(state: GraphState) -> dict:
     out = search(state["query"], strategy=strategy, mode=mode, k=10,
                  corpus=index_corpus)
     results = _serialize(out["results"])
+    results, adjusted = _intent_adjust(state["question"], results, corpus)
     top = results[0]["score"] if results else float("nan")
     return {
         "results": results,
         "trace": _trace("retrieve", started,
                         f"{len(results)} candidates via {mode} "
-                        f"on {strategy} chunks; top score {top:.3f}"),
+                        f"on {strategy} chunks; top score {top:.3f}"
+                        + ("; intent-adjusted ranking (figure-bearing "
+                           "chunks up, definitional boilerplate down)"
+                           if adjusted else "")),
     }
 
 
@@ -571,7 +780,8 @@ def _extractive_answer(state: GraphState) -> tuple[str, list[dict]]:
         results = [r for r in results if r["ticker"] in mentioned] or results
     q_words = {w.lower() for w in re.findall(r"[a-z0-9]+", state["question"].lower())
                if w not in _STOPWORDS and len(w) > 2}
-    asks_figure = bool(_FIGURE_TRIGGER.search(state["question"]))
+    headline = _performance_headline(state)
+    asks_figure = bool(_FIGURE_TRIGGER.search(state["question"])) or headline is not None
 
     scored: list[tuple[float, str, dict]] = []
     for rank_idx, r in enumerate(results):
@@ -621,10 +831,16 @@ def _extractive_answer(state: GraphState) -> tuple[str, list[dict]]:
 
     parts: list[str] = []
     used: list[dict] = []
-    fig = _figure_sentence(state)
-    if fig:
-        parts.append(fig[0] + f" [{fig[1]['doc']}]")
-        used.append(fig[1])
+    if headline is not None:
+        # Performance questions lead with the composed figures
+        # headline INSTEAD of the single-row figure sentence.
+        parts.append(headline[0] + f" [{headline[1]['doc']}]")
+        used.append(headline[1])
+    else:
+        fig = _figure_sentence(state)
+        if fig:
+            parts.append(fig[0] + f" [{fig[1]['doc']}]")
+            used.append(fig[1])
     for sent, r in picked:
         parts.append(f"{sent} [{r['doc']} · {r['section']}]")
         citation = {
@@ -671,7 +887,31 @@ def generate_node(state: GraphState) -> dict:
                   "not be verified. Use only figures copied exactly from the context.")
     llm = get_llm()
     if llm is not None:
+        # Performance questions carry a deterministic figures headline.
+        # In LLM mode the model still writes the supporting prose, but
+        # it is steered to the headline's fiscal year and the headline
+        # is prepended verbatim — the owner's live test answered FY2024
+        # figures for "last year" when FY2025 was the latest year,
+        # because the bundled MD&A context is the FY2024 filing. The
+        # headline makes the year deterministic; verification still
+        # checks every number in the combined answer.
+        headline = _performance_headline(state)
+        intent = _performance_intent(state["question"],
+                                     state.get("corpus", "active"))
+        if headline is not None and intent is not None:
+            _ticker, year = intent
+            strict += (
+                f"\n\nThis question asks how the company performed in fiscal "
+                f"year {year}, its latest reported fiscal year. A verified "
+                f"headline computed from SEC company facts will be placed "
+                f"before your answer: \"{headline[0]}\" Discuss fiscal year "
+                f"{year} (comparing with fiscal year {year - 1} where the "
+                f"context supports it). Do not present another year's "
+                f"figures as the result for fiscal year {year}.")
         answer, citations = _llm_answer(state, strict)
+        if headline is not None:
+            answer = headline[0] + "\n\n" + answer
+            citations = [headline[1]] + citations[:4]
         mode = "llm"
     else:
         answer, citations = _extractive_answer(state)
@@ -724,11 +964,30 @@ def verify_answer(answer: str, results: list[dict]) -> tuple[bool, str]:
         grounded_values.add(float(f["value_usd"]))
         grounded_values.add(float(f["fiscal_year"]))
 
+    # Year-over-year percentages are arithmetic on two grounded figure
+    # rows (same ticker + concept, adjacent fiscal years) — the
+    # performance headline states them, so verification must recognise
+    # them as grounded rather than invented. Answers print them at 2
+    # decimals, hence the rounding tolerance.
+    by_concept: dict[tuple[str, str], dict[int, float]] = {}
+    for f in figures:
+        by_concept.setdefault((f["ticker"], f["concept"]), {})[
+            f["fiscal_year"]] = float(f["value_usd"])
+    derived_pcts: set[float] = set()
+    for years in by_concept.values():
+        for fy, value in years.items():
+            prev = years.get(fy - 1)
+            if prev:
+                pct = (value - prev) / prev * 100
+                derived_pcts.update((pct, abs(pct)))
+
     ungrounded: list[str] = []
     for tok in _NUM_RE.findall(answer):
         v = _token_value(tok)
         if v is None:
             continue
+        if "%" in tok and any(abs(v - p) <= 0.006 for p in derived_pcts):
+            continue  # a YoY % derived from the figures table (2dp rounding)
         ok = False
         for g in grounded_values:
             if g == v:
@@ -767,11 +1026,19 @@ def _route_after_scope(state: GraphState) -> str:
 
 
 def _route_after_grade(state: GraphState) -> str:
+    mentioned = _mentioned_tickers(state["question"],
+                                   state.get("corpus", "active"))
     if state.get("relevant"):
         # Relevant evidence but no company named: don't silently pick one.
-        if not _mentioned_tickers(state["question"], state.get("corpus", "active")):
+        if not mentioned:
             return "clarify"
         return "generate"
+    if not mentioned:
+        # Company-less questions can never be answered from a
+        # multi-company corpus, whatever the rewrite — ask which
+        # company instead of refusing (or guessing). A follow-up that
+        # arrives with NO context lands here by design.
+        return "clarify"
     if state.get("rewrites", 0) < 1:
         return "rewrite"
     return "refuse"
@@ -787,6 +1054,7 @@ def _route_after_verify(state: GraphState) -> str:
 
 def build_graph():
     g = StateGraph(GraphState)
+    g.add_node("contextualize", contextualize_node)
     g.add_node("scope", scope_node)
     g.add_node("retrieve", retrieve_node)
     g.add_node("grade", grade_node)
@@ -795,7 +1063,8 @@ def build_graph():
     g.add_node("verify", verify_node)
     g.add_node("refuse", refuse_node)
     g.add_node("clarify", clarify_node)
-    g.add_edge(START, "scope")
+    g.add_edge(START, "contextualize")
+    g.add_edge("contextualize", "scope")
     g.add_conditional_edges("scope", _route_after_scope,
                             {"retrieve": "retrieve", "refuse": "refuse"})
     g.add_edge("retrieve", "grade")
@@ -822,12 +1091,19 @@ def get_app():
 
 
 def run(question: str, strategy: str = "section",
-        retrieval_mode: str = "hybrid+rerank", corpus: str = "active") -> dict:
+        retrieval_mode: str = "hybrid+rerank", corpus: str = "active",
+        context: dict | None = None) -> dict:
     """Ask one question; returns the JSON-able result for API/UI/tests.
 
     ``corpus``: "active" (bundled + session, the default), "bundled"
     (the frozen snapshot the measurements are pinned to), or a ticker
     restricting scope + retrieval to that one company.
+
+    ``context``: the previous turn's ``resolved`` ({ticker,
+    fiscal_year}) — follow-up questions are rewritten against it by
+    the contextualize step. The result carries this turn's
+    ``resolved`` plus ``understood_as`` (the standalone rewrite, when
+    one happened).
     """
     started = time.perf_counter()
     final = get_app().invoke({
@@ -836,6 +1112,7 @@ def run(question: str, strategy: str = "section",
         "strategy": strategy,
         "retrieval_mode": retrieval_mode,
         "corpus": corpus,
+        "context": context or {},
         "rewrites": 0,
         "generations": 0,
         "trace": [],
@@ -851,6 +1128,8 @@ def run(question: str, strategy: str = "section",
         "strategy": strategy,
         "retrieval_mode": retrieval_mode,
         "corpus": corpus,
+        "resolved": _resolved_for(final.get("question", question), corpus),
+        "understood_as": final.get("understood_as"),
         "latency_ms": round((time.perf_counter() - started) * 1000, 1),
     }
 
