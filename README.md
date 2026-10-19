@@ -41,10 +41,29 @@ there.
   from EDGAR, slice/chunk/embed it with the same pipeline, build its
   figures table — and the chat answers from it immediately, in a
   session corpus layered over the bundled snapshot (see below).
+  Re-adding a session company checks EDGAR: if a newer 10-K has been
+  filed, the company is re-ingested and replaced; if not, the job
+  reports "already current" with the accession on file.
+- **Conversation memory:** the chat is multi-turn. Each answer reports
+  the company + fiscal year it resolved to; the next question sends
+  them back, and a deterministic contextualize step (rules, no model
+  call) rewrites follow-ups — "Are there any risks with it?" becomes
+  "What are Apple's principal risk factors?" — shown in the step trail
+  as "Understood as: …". With no context, a company-less follow-up
+  asks which company rather than guessing.
+- **Performance questions are figures-first:** "How did Apple perform
+  last year?" is answered with a composed headline from the figures
+  table (latest fiscal year vs the year before, with YoY %, cited to
+  SEC company facts) instead of whatever MD&A passage ranks first —
+  and the ranking demotes definitional boilerplate for figure-seeking
+  questions. In LLM mode the same headline is prepended verbatim and
+  the model is steered to its fiscal year.
 - **A premium web UI** (Next.js 15 + FastAPI): chat with a live step
-  trail and expandable evidence cards, an Add a Company page with a
+  trail and expandable evidence cards, a sticky bottom composer with
+  a conversation-context chip and a New chat control (clears the
+  conversation, never the corpus), an Add a Company page with a
   live pipeline visualizer, a Chunking Lab with the measured
-  comparison, and an Eval Dashboard with the 15-question results.
+  comparison, and an Eval Dashboard with the 18-question results.
 
 ## Architecture
 
@@ -121,7 +140,7 @@ registers, "What was Tesla's revenue in fiscal 2024?" goes from an
 honest refusal to a cited answer. Chat accepts a corpus selector —
 `active` (bundled + session, the default), `bundled`, or one ticker.
 The measured artifacts never move: the comparison experiment and the
-15-question evaluation are pinned to the bundled corpus, and the Lab
+18-question evaluation are pinned to the bundled corpus, and the Lab
 and Eval pages say so ("Measured on the bundled corpus (AAPL · MSFT ·
 NVDA snapshot, Oct 2026). Session-ingested companies are not part of
 these measurements.").
@@ -188,20 +207,26 @@ ranking (MRR 0.74 → 0.93), which is exactly what generation and the
 verifier consume — so the app defaults to section + hybrid+rerank and
 pays the ~2.4 s.
 
-**Evaluation** — 15 questions through the full graph (9 answerable,
-2 comparisons, 2 ambiguous, 2 unanswerable), `python -m src.evaluate`,
-report in `docs/evaluation-report.md`: **15/15 passed, faithfulness
-100% among answered questions, mean end-to-end latency ~3.0 s** in
-extractive mode on local CPU. The first measured run passed 8/15; the
-failure analysis and the mechanism-level fixes are documented in
+**Evaluation** — 18 questions through the full graph (9 answerable,
+2 comparisons, 2 ambiguous, 2 unanswerable, plus a figures-headline
+performance question, a two-turn follow-up that must keep its company
+via context, and the same follow-up with no context, which must
+clarify), `python -m src.evaluate`, report in
+`docs/evaluation-report.md`: **18/18 passed, faithfulness 100% among
+answered questions** in extractive mode on local CPU. The first
+measured run of the original 15 passed 8/15; the failure analysis
+and the mechanism-level fixes are documented in
 `docs/project-documentation.md`.
 
-**Tests** — 26 pytest tests (chunking invariants, figures-table
+**Tests** — 40 pytest tests (chunking invariants, figures-table
 values, retrieval determinism, graph refusal/clarification/answer
-paths, ticker resolution, precache ingest, the dynamic
-refuse → ingest → answer scope arc, plus the market layer's
-fallback order, cache behavior, and degrade-to-unavailable contract
-with injected fake fetchers), all passing:
+paths, conversation contextualization, performance headlines and
+YoY-percentage verification, ticker resolution, precache ingest,
+session refresh-on-re-add with a faked EDGAR, Item-slicer heading
+styles across filers (including Netflix's no-space iXBRL headings),
+the dynamic refuse → ingest → answer scope arc, plus the market
+layer's fallback order, cache behavior, and degrade-to-unavailable
+contract with injected fake fetchers), all passing:
 `python -m pytest tests/ -q`.
 
 ## Setup
@@ -263,8 +288,8 @@ src/session_ingest.py  live ingest pipeline + job records
 src/chunking.py     fixed vs section-aware chunking
 src/retrieval.py    FAISS + BM25, RRF fusion, cross-encoder rerank
 src/experiments.py  chunking x retrieval comparison experiment
-src/graph.py        LangGraph Q&A app (scope/retrieve/grade/rewrite/generate/verify/refuse/clarify)
-src/evaluate.py     15-question evaluation harness
+src/graph.py        LangGraph Q&A app (contextualize/scope/retrieve/grade/rewrite/generate/verify/refuse/clarify)
+src/evaluate.py     18-question evaluation harness
 src/questions.py    gold question sets
 src/api.py          FastAPI backend for the web UI
 web/                Next.js 15 UI (Chat, Add a Company, Chunking Lab, Eval Dashboard)

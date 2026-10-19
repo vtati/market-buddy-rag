@@ -1,9 +1,13 @@
-"""Week 2 evaluation — 15 questions run end-to-end through the graph.
+"""Week 2 evaluation — 18 questions run end-to-end through the graph.
 
 Set composition (per the handout): 9 answerable factual questions,
 2 multi-document comparisons, 2 ambiguous questions, 2 unanswerable
-questions. Each question carries an explicit expected behaviour and a
-mechanical pass rule:
+questions — plus three scenarios added after the owner's live test:
+a free-form performance question that must be headlined from the
+figures table (E16), a two-turn follow-up that must keep its company
+via conversation context (E17), and the same follow-up with NO
+context, which must clarify rather than guess (E18). Each question
+carries an explicit expected behaviour and a mechanical pass rule:
 
 * answerable   — not refused, at least one citation from the expected
   company's gold section (or the figures table), and every number in
@@ -91,6 +95,25 @@ EVAL_QUESTIONS = [
     {"id": "E15", "type": "unanswerable",
      "question": "What will Apple's stock price be at the end of 2027?",
      "expected": "Refuse: a future stock-price prediction is not in any filing."},
+    # --- owner live-test scenarios -----------------------------------------
+    {"id": "E16", "type": "answerable", "ticker": "AAPL",
+     "gold_sections": ["Figures table"],
+     "must_contain": ["416,161,000,000", "112,010,000,000"],
+     "question": "How did Apple perform last year?",
+     "expected": "Answer headlined from the figures table: FY2025 revenue "
+                 "$416,161,000,000 (+6.43% YoY) and net income, cited to SEC "
+                 "company facts — not Item 7 definitional boilerplate."},
+    {"id": "E17", "type": "followup", "ticker": "AAPL",
+     "gold_sections": ["Item 1A"],
+     "turns": ["What are the sales for Apple in the last year?",
+               "Are there any risks with it?"],
+     "question": "Are there any risks with it?",
+     "expected": "Turn 2 keeps Apple via the context from turn 1's resolved "
+                 "values and answers from Apple's Item 1A risk factors."},
+    {"id": "E18", "type": "ambiguous",
+     "question": "Are there any risks with it?",
+     "expected": "No context and no company named: clarify which company "
+                 "(or refuse) — never silently answer for one company."},
 ]
 
 _AMBIGUITY_MARKERS = (
@@ -109,8 +132,30 @@ def _faithfulness(question: str, answer: str) -> tuple[bool, str]:
     return verify_answer(answer, results)
 
 
+def _judge_followup(q: dict, result: dict) -> tuple[bool, str, bool, str]:
+    """A follow-up turn passes when the context survived: the turn was
+    contextualized (understood_as set), answered — not refused, not
+    bounced back as a clarification — and cited from the expected
+    company's gold section, with numbers re-verified against a fresh
+    retrieval of the UNDERSTOOD question."""
+    if result["refused"] or result.get("clarification"):
+        return False, "follow-up lost its context (refused or asked to clarify)", True, "n/a"
+    if not result.get("understood_as"):
+        return False, "follow-up was never contextualized", True, "n/a"
+    gold = [c for c in result["citations"]
+            if c["doc"].startswith(q["ticker"]) and c["section"] in q["gold_sections"]]
+    if not gold:
+        return False, "no citation from the expected company/section", True, "n/a"
+    faithful, faith_detail = _faithfulness(result["understood_as"], result["answer"])
+    if not faithful:
+        return False, f"faithfulness: {faith_detail}", faithful, faith_detail
+    return True, "context kept; answered with gold-section citation; numbers verified", faithful, faith_detail
+
+
 def _judge(q: dict, result: dict) -> tuple[bool, str, bool, str]:
     citations = result["citations"]
+    if q["type"] == "followup":
+        return _judge_followup(q, result)
     faithful, faith_detail = (True, "n/a (refused)")
     if not result["refused"]:
         faithful, faith_detail = _faithfulness(q["question"], result["answer"])
@@ -122,6 +167,9 @@ def _judge(q: dict, result: dict) -> tuple[bool, str, bool, str]:
                 if c["doc"].startswith(q["ticker"]) and c["section"] in q["gold_sections"]]
         if not gold:
             return False, "no citation from the expected company/section", faithful, faith_detail
+        missing = [s for s in q.get("must_contain", []) if s not in result["answer"]]
+        if missing:
+            return False, f"answer missing required figure(s): {', '.join(missing)}", faithful, faith_detail
         if not faithful:
             return False, f"faithfulness: {faith_detail}", faithful, faith_detail
         return True, "answered with gold-section citation; numbers verified", faithful, faith_detail
@@ -157,10 +205,21 @@ def run_eval() -> dict:
     for q in EVAL_QUESTIONS:
         # The eval is pinned to the bundled corpus: its measured numbers
         # describe the frozen snapshot, never session-ingested companies.
-        result = run(q["question"], corpus="bundled")
+        if q["type"] == "followup":
+            # Two turns: the second runs with the first turn's resolved
+            # values as its context — the conversation-memory contract.
+            first = run(q["turns"][0], corpus="bundled")
+            result = run(q["turns"][1], corpus="bundled",
+                         context=first["resolved"])
+            result["latency_ms"] = round(
+                first["latency_ms"] + result["latency_ms"], 1)
+            question = " → ".join(q["turns"])
+        else:
+            result = run(q["question"], corpus="bundled")
+            question = q["question"]
         passed, note, faithful, faith_detail = _judge(q, result)
         rows.append({
-            "id": q["id"], "type": q["type"], "question": q["question"],
+            "id": q["id"], "type": q["type"], "question": question,
             "expected": q["expected"],
             "refused": result["refused"],
             "answer": result["answer"],
@@ -187,7 +246,7 @@ def run_eval() -> dict:
 
 def render_doc(results: dict) -> str:
     lines = [
-        "# Evaluation report — 15 questions through the full graph",
+        f"# Evaluation report — {results['total']} questions through the full graph",
         "",
         f"Measured {results['generated_at']} with the production graph "
         f"(section chunking, hybrid+rerank, extractive generation — no LLM "
@@ -257,7 +316,7 @@ def render_doc(results: dict) -> str:
 
 
 def main() -> None:
-    print("Running 15-question evaluation through the graph...")
+    print(f"Running {len(EVAL_QUESTIONS)}-question evaluation through the graph...")
     results = run_eval()
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     RESULTS_PATH.write_text(json.dumps(results, indent=2), encoding="utf-8")

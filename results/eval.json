@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-18T19:04:12.952378+00:00",
+  "generated_at": "2026-10-19T00:12:06.941583+00:00",
   "mode": "extractive (no LLM key configured)",
-  "total": 15,
-  "passed": 15,
+  "total": 18,
+  "passed": 18,
   "pass_rate": 1.0,
   "faithfulness_rate_answered": 1.0,
-  "mean_latency_ms": 3040.2,
+  "mean_latency_ms": 6711.5,
   "rows": [
     {
       "id": "E1",
@@ -13,7 +13,7 @@
       "question": "What was Apple's total net sales in fiscal 2024?",
       "expected": "Answer with the FY2024 net-sales figure, cited to Item 7/8 or the figures table.",
       "refused": false,
-      "answer": "AAPL reported total revenue of $391,035,000,000 for fiscal year 2024 (period ended 2024-09-28). [AAPL \u00b7 SEC company facts]\n\nTotal net sales $ 391,035 2 % $ 383,285 (3) % $ 394,328 [AAPL 10-K FY2024 \u00b7 Item 7]\n\niPhone net sales were relatively flat during 2024 compared to 2023. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nMac net sales increased during 2024 compared to 2023 due primarily to higher net sales of laptops. [AAPL 10-K FY2024 \u00b7 Item 7]\n\niPad net sales decreased during 2024 compared to 2023 due primarily to lower net sales of iPad Pro and the entry-level iPad models, partially offset by higher net sales of iPad Air. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nWearables, Home and Accessories net sales decreased during 2024 compared to 2023 due primarily to lower net sales of Wearables and Accessories. [AAPL 10-K FY2024 \u00b7 Item 7]",
+      "answer": "Apple reported total revenue of $391,035,000,000 for fiscal year 2024, up 2.02% from $383,285,000,000 in fiscal year 2023. Apple posted net income of $93,736,000,000 for fiscal year 2024, down 3.36% from $96,995,000,000 in fiscal year 2023. [AAPL \u00b7 SEC company facts]\n\nTotal net sales $ 391,035 2 % $ 383,285 (3) % $ 394,328 [AAPL 10-K FY2024 \u00b7 Item 7]\n\niPhone net sales were relatively flat during 2024 compared to 2023. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nMac net sales increased during 2024 compared to 2023 due primarily to higher net sales of laptops. [AAPL 10-K FY2024 \u00b7 Item 7]\n\niPad net sales decreased during 2024 compared to 2023 due primarily to lower net sales of iPad Pro and the entry-level iPad models, partially offset by higher net sales of iPad Air. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nWearables, Home and Accessories net sales decreased during 2024 compared to 2023 due primarily to lower net sales of Wearables and Accessories. [AAPL 10-K FY2024 \u00b7 Item 7]",
       "citations": [
         {
           "doc": "AAPL \u00b7 SEC company facts",
@@ -27,33 +27,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.5,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 3924.4,
-          "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.599"
+          "latency_ms": 9837.7,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.599; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 2623.1,
+          "latency_ms": 13455.7,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 6.09, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 5.0,
+          "latency_ms": 26.2,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 7.2,
+          "latency_ms": 29.2,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 6579.1,
+      "latency_ms": 23471.5,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -63,11 +63,15 @@
       "question": "How much net income did Apple report for fiscal 2024?",
       "expected": "Answer with the FY2024 net-income figure, cited.",
       "refused": false,
-      "answer": "AAPL reported net income of $93,736,000,000 for fiscal year 2024 (period ended 2024-09-28). [AAPL \u00b7 SEC company facts]\n\nThe following table shows net sales by reportable segment for 2024, 2023 and 2022 (dollars in millions): [AAPL 10-K FY2024 \u00b7 Item 7]\n\nDiscussions of 2022 items and year-to-year comparisons between 2023 and 2022 are not included, and can be found in \u201cManagement\u2019s Discussion and Analysis of Financial Condition and Results of Operations\u201d in Part II, Item 7 of the Company\u2019s Annual Report on Form 10-K for the fiscal year ended September 30, 2023. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nSignificant announcements during fiscal year 2024 included the following: [AAPL 10-K FY2024 \u00b7 Item 7]\n\nThe Company\u2019s fiscal years 2024 and 2022 spanned 52 weeks each, whereas fiscal year 2023 spanned 53 weeks. [AAPL 10-K FY2024 \u00b7 Item 7]\n\nAmericas net sales increased during 2024 compared to 2023 due primarily to higher net sales of Services. [AAPL 10-K FY2024 \u00b7 Item 7]",
+      "answer": "AAPL reported net income of $93,736,000,000 for fiscal year 2024 (period ended 2024-09-28). [AAPL \u00b7 SEC company facts]\n\nConsolidated Statements of Comprehensive Income for the years ended September 28, 2024, September 30, 2023 and September 24, 2022 [AAPL 10-K FY2024 \u00b7 Item 8]\n\nOther income/(expense), net 269 (565) (334) [AAPL 10-K FY2024 \u00b7 Item 8]\n\nNet income $ 93,736 $ 96,995 $ 99,803 [AAPL 10-K FY2024 \u00b7 Item 8]\n\nAdjustment for net (gains)/losses realized and included in net income (1,337) (1,717) (1,074) [AAPL 10-K FY2024 \u00b7 Item 8]\n\niPhone net sales were relatively flat during 2024 compared to 2023. [AAPL 10-K FY2024 \u00b7 Item 7]",
       "citations": [
         {
           "doc": "AAPL \u00b7 SEC company facts",
           "section": "Figures table"
+        },
+        {
+          "doc": "AAPL 10-K FY2024",
+          "section": "Item 8"
         },
         {
           "doc": "AAPL 10-K FY2024",
@@ -77,33 +81,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 1264.6,
-          "detail": "10 candidates via hybrid+rerank on section chunks; top score 1.974"
+          "latency_ms": 4024.1,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 0.859; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 1644.0,
+          "latency_ms": 4517.6,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 5.24, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 30.5,
+          "latency_ms": 15.6,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 9.7,
+          "latency_ms": 18.3,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2957.4,
+      "latency_ms": 8601.2,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -131,33 +135,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 1234.5,
+          "latency_ms": 3781.7,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -2.121"
         },
         {
           "node": "grade",
-          "latency_ms": 653.6,
+          "latency_ms": 2636.6,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -2.80, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 7.6,
+          "latency_ms": 39.5,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 6.4,
+          "latency_ms": 17.1,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 1908.3,
+      "latency_ms": 6499.8,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -186,28 +190,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1917.1,
+          "latency_ms": 4317.0,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.439"
         },
         {
           "node": "grade",
-          "latency_ms": 1705.9,
+          "latency_ms": 3864.3,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 4.47, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 6.3,
+          "latency_ms": 7.3,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 5.7,
+          "latency_ms": 6.7,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 3658.5,
+      "latency_ms": 8230.4,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -231,33 +235,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 1347.5,
+          "latency_ms": 3805.2,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.324"
         },
         {
           "node": "grade",
-          "latency_ms": 914.5,
+          "latency_ms": 3825.8,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best 4.85, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 7.3,
+          "latency_ms": 27.0,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 5.7,
+          "latency_ms": 21.2,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2282.6,
+      "latency_ms": 7731.3,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -286,28 +290,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1309.3,
+          "latency_ms": 3987.4,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -1.391"
         },
         {
           "node": "grade",
-          "latency_ms": 1032.9,
+          "latency_ms": 2844.9,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best -3.14, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 6.0,
+          "latency_ms": 33.3,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 5.7,
+          "latency_ms": 66.9,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2360.2,
+      "latency_ms": 6979.3,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -331,33 +335,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 1477.9,
-          "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.661"
+          "latency_ms": 3987.1,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.661; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 1074.5,
+          "latency_ms": 2408.2,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best 2.79, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 32.2,
+          "latency_ms": 16.3,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 6.3,
+          "latency_ms": 6.7,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2598.8,
+      "latency_ms": 6461.5,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -390,28 +394,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1799.3,
+          "latency_ms": 3724.1,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.219"
         },
         {
           "node": "grade",
-          "latency_ms": 1405.6,
+          "latency_ms": 2489.3,
           "detail": "company-match grade: NVDA in top-3 = True (windowed cross-encoder best 4.52, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 6.4,
+          "latency_ms": 18.2,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 5.7,
+          "latency_ms": 12.9,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 3222.6,
+      "latency_ms": 6281.5,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -435,33 +439,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 1653.8,
+          "latency_ms": 3640.8,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -0.954"
         },
         {
           "node": "grade",
-          "latency_ms": 2090.6,
+          "latency_ms": 2708.0,
           "detail": "company-match grade: NVDA in top-3 = True (windowed cross-encoder best 0.52, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 9.2,
+          "latency_ms": 88.0,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 12.5,
+          "latency_ms": 31.3,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 3798.6,
+      "latency_ms": 6516.9,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -489,33 +493,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 3085.6,
+          "latency_ms": 5378.0,
           "detail": "per-company retrieval for ['AAPL', 'MSFT']: 8 merged candidates via hybrid+rerank on section chunks"
         },
         {
           "node": "grade",
-          "latency_ms": 377.3,
+          "latency_ms": 723.4,
           "detail": "company-match grade (comparison): covered ['AAPL', 'MSFT'], missing [] in merged top-8 (windowed cross-encoder best -0.09, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 6.6,
+          "latency_ms": 14.5,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 5.8,
+          "latency_ms": 38.5,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 3484.0,
+      "latency_ms": 6167.4,
       "pass": true,
       "note": "both companies cited; numbers verified"
     },
@@ -543,33 +547,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 3363.1,
+          "latency_ms": 5558.7,
           "detail": "per-company retrieval for ['AAPL', 'NVDA']: 8 merged candidates via hybrid+rerank on section chunks"
         },
         {
           "node": "grade",
-          "latency_ms": 991.3,
+          "latency_ms": 2131.8,
           "detail": "company-match grade (comparison): covered ['AAPL', 'NVDA'], missing [] in merged top-8 (windowed cross-encoder best -1.56, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 18.9,
+          "latency_ms": 15.5,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 10.7,
+          "latency_ms": 7.5,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 4389.4,
+      "latency_ms": 7745.0,
       "pass": true,
       "note": "both companies cited; numbers verified"
     },
@@ -578,51 +582,36 @@
       "type": "ambiguous",
       "question": "How did the company perform last year?",
       "expected": "Flag the ambiguity (which company?) or refuse \u2014 never silently pick one company.",
-      "refused": true,
-      "answer": "I couldn't find this in the filings I have access to. My corpus covers excerpts of the most recent 10-K filings for Apple, Microsoft, and NVIDIA (business, risk factors, MD&A, and financial statements) plus Apple's SEC company-facts figures \u2014 the answer isn't in that material, so I won't guess at it.",
+      "refused": false,
+      "answer": "Which company do you mean? I can search the 10-K filings for Apple, Microsoft, and NVIDIA \u2014 name one, or ask me to compare them, and I'll pull the relevant section.",
       "citations": [],
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 25.4,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 2555.6,
+          "latency_ms": 3053.4,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -5.621"
         },
         {
           "node": "grade",
-          "latency_ms": 1277.0,
+          "latency_ms": 2476.3,
           "detail": "windowed cross-encoder top score -4.50 (threshold 0.0)"
         },
         {
-          "node": "rewrite",
-          "latency_ms": 0.2,
-          "detail": "keyword rewrite: 'perform last year Form 10-K annual report'"
-        },
-        {
-          "node": "retrieve",
-          "latency_ms": 1221.1,
-          "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.129"
-        },
-        {
-          "node": "grade",
-          "latency_ms": 801.0,
-          "detail": "windowed cross-encoder top score -4.50 (threshold 0.0)"
-        },
-        {
-          "node": "refuse",
+          "node": "clarify",
           "latency_ms": 0.0,
-          "detail": "honest refusal \u2014 evidence insufficient after retrieval + rewrite"
+          "detail": "no company named in a multi-company corpus \u2014 asking which one"
         }
       ],
       "faithful": true,
-      "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 5862.4,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 5564.2,
       "pass": true,
-      "note": "refused rather than guessing a company"
+      "note": "answer explicitly flags the ambiguity"
     },
     {
       "id": "E13",
@@ -635,17 +624,17 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.0,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 1920.9,
+          "latency_ms": 2121.2,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 2.396"
         },
         {
           "node": "grade",
-          "latency_ms": 572.5,
+          "latency_ms": 963.0,
           "detail": "windowed cross-encoder top score 3.05 (threshold 0.0)"
         },
         {
@@ -656,7 +645,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2497.2,
+      "latency_ms": 3091.0,
       "pass": true,
       "note": "answer explicitly flags the ambiguity"
     },
@@ -676,13 +665,13 @@
         },
         {
           "node": "refuse",
-          "latency_ms": 0.0,
+          "latency_ms": 0.8,
           "detail": "honest refusal \u2014 named company is outside the corpus"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 2.3,
+      "latency_ms": 11.3,
       "pass": true,
       "note": "honest refusal"
     },
@@ -708,9 +697,142 @@
       ],
       "faithful": true,
       "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 1.5,
+      "latency_ms": 10.1,
       "pass": true,
       "note": "honest refusal"
+    },
+    {
+      "id": "E16",
+      "type": "answerable",
+      "question": "How did Apple perform last year?",
+      "expected": "Answer headlined from the figures table: FY2025 revenue $416,161,000,000 (+6.43% YoY) and net income, cited to SEC company facts \u2014 not Item 7 definitional boilerplate.",
+      "refused": false,
+      "answer": "Apple reported total revenue of $416,161,000,000 for fiscal year 2025, up 6.43% from $391,035,000,000 in fiscal year 2024. Apple posted net income of $112,010,000,000 for fiscal year 2025, up 19.50% from $93,736,000,000 in fiscal year 2024. [AAPL \u00b7 SEC company facts]",
+      "citations": [
+        {
+          "doc": "AAPL \u00b7 SEC company facts",
+          "section": "Figures table"
+        }
+      ],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 2632.9,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score -8.720; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 2173.2,
+          "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -7.89, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 24.3,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 19.6,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 4870.9,
+      "pass": true,
+      "note": "answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E17",
+      "type": "followup",
+      "question": "What are the sales for Apple in the last year? \u2192 Are there any risks with it?",
+      "expected": "Turn 2 keeps Apple via the context from turn 1's resolved values and answers from Apple's Item 1A risk factors.",
+      "refused": false,
+      "answer": "While the Company maintains insurance coverage that is intended to address certain aspects of data security risks, such insurance coverage may be insufficient to cover all losses or all types of claims that may arise. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nInvestment in new business strategies, commercial relationships and acquisitions could disrupt the Company\u2019s ongoing business, present risks not originally contemplated, and materially adversely affect the Company\u2019s business, reputation, results of operations and financial condition. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nSuch endeavors may involve significant risks and uncertainties, including distraction of management from current operations, greater-than-expected liabilities and expenses, economic, political, legal and regulatory challenges associated with operating in new businesses, regions or countries, inadequate return on capital, potential impairment of tangible and intangible assets, and significant write-offs. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nSome transactions, including investments and acquisitions, are exposed to additional risks, including failing to obtain required regulatory approvals on a timely basis or at all, a counterparty\u2019s failure to perform or deliver as anticipated, or the imposition of onerous conditions that could delay or prevent the Company from completing a transaction or otherwise limit the Company\u2019s ability to fully realize the anticipated benefits of a transaction. [AAPL 10-K FY2025 \u00b7 Item 1A]",
+      "citations": [
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1A"
+        }
+      ],
+      "trace": [
+        {
+          "node": "contextualize",
+          "latency_ms": 0.1,
+          "detail": "Understood as: What are Apple's principal risk factors?"
+        },
+        {
+          "node": "scope",
+          "latency_ms": 0.0,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 1882.4,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score -1.078"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 1365.9,
+          "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -3.36, recorded not gated)"
+        },
+        {
+          "node": "generate",
+          "latency_ms": 8.5,
+          "detail": "extractive generation"
+        },
+        {
+          "node": "verify",
+          "latency_ms": 29.6,
+          "detail": "all numbers in the answer trace to cited chunks or the figures table"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 8461.1,
+      "pass": true,
+      "note": "context kept; answered with gold-section citation; numbers verified"
+    },
+    {
+      "id": "E18",
+      "type": "ambiguous",
+      "question": "Are there any risks with it?",
+      "expected": "No context and no company named: clarify which company (or refuse) \u2014 never silently answer for one company.",
+      "refused": false,
+      "answer": "Which company do you mean? I can search the 10-K filings for Apple, Microsoft, and NVIDIA \u2014 name one, or ask me to compare them, and I'll pull the relevant section.",
+      "citations": [],
+      "trace": [
+        {
+          "node": "scope",
+          "latency_ms": 0.1,
+          "detail": "question is in corpus scope"
+        },
+        {
+          "node": "retrieve",
+          "latency_ms": 2648.3,
+          "detail": "10 candidates via hybrid+rerank on section chunks; top score 0.078"
+        },
+        {
+          "node": "grade",
+          "latency_ms": 1447.2,
+          "detail": "windowed cross-encoder top score -0.49 (threshold 0.0)"
+        },
+        {
+          "node": "clarify",
+          "latency_ms": 0.0,
+          "detail": "no company named in a multi-company corpus \u2014 asking which one"
+        }
+      ],
+      "faithful": true,
+      "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
+      "latency_ms": 4111.9,
+      "pass": true,
+      "note": "answer explicitly flags the ambiguity"
     }
   ]
 }
