@@ -36,7 +36,7 @@ A retrieval-augmented Q&A system over real 10-K filings, in four parts:
    comparison), and Eval Dashboard (the 20-question evaluation,
    expandable per question).
 
-Quality gates that ship with it: a 75-test pytest suite (chunking
+Quality gates that ship with it: an 80-test pytest suite (chunking
 invariants, figures-table values, retrieval determinism, graph
 refusal/answer paths, conversation context, performance routing,
 ingest refresh, slicing robustness, market layer) and the 20-question
@@ -84,10 +84,13 @@ Derived datasets built for measurement (both committed in `src/`):
 - **12 gold questions** (`src/questions.py`) with known relevant
   companies and Item sections, used by the chunking × retrieval
   comparison experiment.
-- **18 evaluation questions** (`src/evaluate.py`): 13 answerable
-  (9 factual, a figures-headlined performance question, a two-turn
-  conversation follow-up, and per-company factuals), 2 multi-document
-  comparisons, 3 ambiguous that must be clarified, 2 unanswerable —
+- **20 evaluation questions** (`src/evaluate.py`): 13 that must be
+  answered with citations (9 factual, a figures-headlined performance
+  question, a two-turn conversation follow-up, per-company factuals,
+  and 2 multi-document comparisons), 3 ambiguous that must be
+  clarified, 4 that must be refused (a company outside the corpus, a
+  future stock-price prediction, and 2 off-topic requests — a coding
+  task and a general-knowledge question) —
   each with an explicit expected behaviour and a mechanical pass rule.
 
 ## (c) Prompts and agent instructions used
@@ -252,6 +255,20 @@ patch:
    daily chat caps, ingest caps, and a concurrency guard, answered
    with HTTP 429 and a friendly in-product message. The unit suite
    grew to 75 tests.
+
+8. **Run 8 — the verification catch (80 tests).** Final spot-checks
+   then caught a subtler failure: the newly added Apple filing was
+   registered and indexed, yet chat still refused questions about
+   its MD&A. Root cause was three successive gates in the graph
+   discarding valid evidence — the LLM grader could veto the
+   deterministic company-match grade for company-named questions;
+   routing ignored a single-company corpus pin (a pinned question
+   with no company in its text was sent to clarification); and the
+   generation window (top-4 chunks) starved the answer, whose
+   on-topic chunk ranked fifth. Each fix shipped with a failing-first
+   test; the suite grew to 80 tests, the evaluation stayed at 20/20,
+   and the deployed API was re-verified end-to-end: the fiscal-2025
+   MD&A question now answers from the session filing's Item 7.
 
 **Interface iteration.** The initial plan was a Streamlit app; the
 project owner replaced it with the house product stack (Next.js +
