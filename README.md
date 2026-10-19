@@ -218,7 +218,7 @@ measured run of the original 15 passed 8/15; the failure analysis
 and the mechanism-level fixes are documented in
 `docs/project-documentation.md`.
 
-**Tests** — 40 pytest tests (chunking invariants, figures-table
+**Tests** — 41 pytest tests (chunking invariants, figures-table
 values, retrieval determinism, graph refusal/clarification/answer
 paths, conversation contextualization, performance headlines and
 YoY-percentage verification, ticker resolution, precache ingest,

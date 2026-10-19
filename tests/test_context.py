@@ -13,7 +13,7 @@ composed figures headline, and the ranking demotes definitional
 boilerplate.
 """
 
-from src.graph import _contextualize, run, verify_answer
+from src.graph import _contextualize, _prepend_headline, run, verify_answer
 
 CTX = {"ticker": "AAPL", "fiscal_year": 2025}
 
@@ -87,3 +87,13 @@ def test_verify_accepts_yoy_percentage_derived_from_figures_table():
         "AAPL total revenue was $416,161,000,000 for fiscal year 2025, "
         "up 6.43% from $391,035,000,000 in fiscal year 2024.", [])
     assert ok, detail
+
+
+def test_prepend_headline_skips_when_model_already_leads_with_it():
+    headline = ("Apple reported total revenue of $416,161,000,000 for fiscal "
+                "year 2025, up 6.43% from $391,035,000,000 in fiscal year "
+                "2024.")
+    echoed = headline + "\n\nMore analysis follows."
+    assert _prepend_headline(echoed, headline) == echoed
+    fresh = "Apple had a strong year, with services growing."
+    assert _prepend_headline(fresh, headline) == headline + "\n\n" + fresh

@@ -444,6 +444,16 @@ def _intent_adjust(question: str, results: list[dict],
     return adjusted, adjusted != results
 
 
+def _prepend_headline(answer: str, headline: str) -> str:
+    """Prepend the deterministic figures headline unless the model already
+    leads with it (the steered LLM often opens with the headline verbatim —
+    duplicating it reads as a bug)."""
+    first_sentence = headline.split(". ")[0].strip()
+    if first_sentence and first_sentence in answer[: len(headline) + 200]:
+        return answer
+    return f"{headline}\n\n{answer}"
+
+
 def _performance_headline(state: GraphState) -> tuple[str, dict] | None:
     """A composed headline from the figures table for performance
     questions: revenue + net income for the target fiscal year against
@@ -910,7 +920,7 @@ def generate_node(state: GraphState) -> dict:
                 f"figures as the result for fiscal year {year}.")
         answer, citations = _llm_answer(state, strict)
         if headline is not None:
-            answer = headline[0] + "\n\n" + answer
+            answer = _prepend_headline(answer, headline[0])
             citations = [headline[1]] + citations[:4]
         mode = "llm"
     else:
