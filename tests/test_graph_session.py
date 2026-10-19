@@ -106,6 +106,50 @@ def test_pinned_single_company_corpus_answers_without_clarifying(
     assert "96,169" in res["answer"]
 
 
+def _result(text: str, rank: int) -> dict:
+    return {"text": text, "score": 1.0, "signals": {},
+            "doc": "AAPL 10-K FY2025", "ticker": "AAPL",
+            "section": "Item 7", "char_start": rank * 4000,
+            "char_end": rank * 4000 + len(text), "accession": ""}
+
+
+def test_evidence_window_reaches_the_on_topic_chunk():
+    """Generation and verification draw from the evidence window
+    (_evidence). The chunk that actually discusses the asked topic
+    can rank just below the filing's preamble chunks — for the real
+    FY2025 MD&A question the Services-narrative chunk ranks #5 —
+    so a top-4 window starved generation of the on-topic passage
+    and the deployed LLM answered 'the context does not contain
+    any information about Services' despite the chunk being in the
+    corpus and retrieved."""
+    fillers = [
+        "The Company's common stock is traded on the Nasdaq Stock "
+        "Market under the symbol AAPL and its principal executive "
+        "offices are located in Cupertino, California.",
+        "The Company announced a new share repurchase authorization "
+        "and a cash dividend declaration during the fourth quarter "
+        "of the fiscal year under review by the board.",
+        "Certain statements in this discussion are forward-looking "
+        "statements that involve risks and uncertainties, and actual "
+        "results could differ materially from those anticipated.",
+        "The Company's fiscal years span 52 or 53 weeks and end on "
+        "the last Saturday of September in each fiscal year shown.",
+    ]
+    on_topic = ("Services net sales increased during 2025 compared "
+                "to 2024 primarily due to higher net sales from "
+                "advertising, the App Store, and cloud services.")
+    results = [_result(t, i) for i, t in enumerate(fillers)]
+    results.append(_result(on_topic, 4))  # rank 5
+    results += [_result(f"Additional background passage number {i} "
+                          "about corporate governance matters.", i)
+                for i in range(5, 8)]
+    state = {"question": "What did Apple say about Services in its "
+                         "fiscal 2025 MD&A?",
+             "corpus": "active", "results": results}
+    answer, _citations = graph._extractive_answer(state)
+    assert "Services net sales increased" in answer
+
+
 class _StubReranker:
     """Every window scores well — company match, not the score, is
     what these tests exercise."""

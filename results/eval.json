@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-19T03:24:47.947287+00:00",
+  "generated_at": "2026-10-19T03:42:38.006628+00:00",
   "mode": "extractive (no LLM key configured)",
   "total": 20,
   "passed": 20,
   "pass_rate": 1.0,
   "faithfulness_rate_answered": 1.0,
-  "mean_latency_ms": 2595.6,
+  "mean_latency_ms": 2618.8,
   "rows": [
     {
       "id": "E1",
@@ -27,33 +27,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.2,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 4281.3,
+          "latency_ms": 3450.9,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.599; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 2808.0,
+          "latency_ms": 2595.2,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 6.09, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 8.1,
+          "latency_ms": 6.8,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 11.8,
+          "latency_ms": 12.0,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 7138.5,
+      "latency_ms": 6086.8,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -86,28 +86,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1628.5,
+          "latency_ms": 1358.1,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 0.859; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 2000.6,
+          "latency_ms": 1797.9,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 5.24, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 15.0,
+          "latency_ms": 14.4,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 18.9,
+          "latency_ms": 20.0,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 3673.6,
+      "latency_ms": 3197.0,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -117,8 +117,12 @@
       "question": "What are Apple's principal risk factors around supply chain concentration and manufacturing outsourcing?",
       "expected": "Answer drawn from Apple's Item 1A risk factors.",
       "refused": false,
-      "answer": "In addition, the Company\u2019s global supply chain is large and complex and a majority of the Company\u2019s supplier facilities, including manufacturing and assembly sites, are located outside the U.S. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nChanges or additions to the Company\u2019s supply chain require considerable time and resources and involve significant risks and uncertainties, including exposure to additional regulatory and operational risks. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nSuccess also relies on the Company\u2019s ability to manage the risks associated with new technologies and production ramp-up issues, the effective integration of third-party services and technologies into the Company\u2019s products and services, the availability, delivery and performance of application software or other third-party support for the Company\u2019s products and services, the effective management of manufacturing and other purchase commitments and the management of inventory levels in line with anticipated product demand, and the availability of products in appropriate quantities and at expected costs to meet anticipated demand. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nThe Company depends on component and product manufacturing and logistical services provided by outsourcing partners, many of which are located outside of the U.S. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nA significant majority of the Company\u2019s manufacturing is performed in whole or in part by outsourcing partners located primarily in China mainland, India, Japan, South Korea, Taiwan and Vietnam, in addition to sourcing from partners and facilities located in the U.S. [AAPL 10-K FY2025 \u00b7 Item 1A]",
+      "answer": "In addition, the Company\u2019s global supply chain is large and complex and a majority of the Company\u2019s supplier facilities, including manufacturing and assembly sites, are located outside the U.S. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nChanges or additions to the Company\u2019s supply chain require considerable time and resources and involve significant risks and uncertainties, including exposure to additional regulatory and operational risks. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nSuch events can make it difficult or impossible for the Company to manufacture and deliver products to its customers, create delays and inefficiencies in the Company\u2019s supply and manufacturing chain, result in slowdowns and outages to the Company\u2019s service offerings, increase the Company\u2019s costs, and negatively impact consumer spending and demand in affected areas. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nThe Company\u2019s operations are also subject to the risks of industrial accidents at its suppliers and contract manufacturers. [AAPL 10-K FY2025 \u00b7 Item 1A]\n\nSuccess also relies on the Company\u2019s ability to manage the risks associated with new technologies and production ramp-up issues, the effective integration of third-party services and technologies into the Company\u2019s products and services, the availability, delivery and performance of application software or other third-party support for the Company\u2019s products and services, the effective management of manufacturing and other purchase commitments and the management of inventory levels in line with anticipated product demand, and the availability of products in appropriate quantities and at expected costs to meet anticipated demand. [AAPL 10-K FY2025 \u00b7 Item 1A]",
       "citations": [
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1A"
+        },
         {
           "doc": "AAPL 10-K FY2025",
           "section": "Item 1A"
@@ -140,28 +144,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1473.9,
+          "latency_ms": 1687.1,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -2.121"
         },
         {
           "node": "grade",
-          "latency_ms": 725.7,
+          "latency_ms": 892.9,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -2.80, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 6.2,
+          "latency_ms": 11.8,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 33.1,
+          "latency_ms": 18.3,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2246.1,
+      "latency_ms": 2642.7,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -171,8 +175,12 @@
       "question": "How does Apple describe its business and its main products and services?",
       "expected": "Answer drawn from Apple's Item 1 business description.",
       "refused": false,
-      "answer": "The Company also employs a variety of indirect distribution channels, such as third-party cellular network carriers and other resellers, for the sale of its products and certain of its services. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe markets for the Company\u2019s products and services are highly competitive and are characterized by aggressive price competition, downward pressure on gross margins, continual improvement in product performance, and price sensitivity on the part of consumers and businesses. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe Company designs and develops nearly the entire solution for its products, including the hardware, operating system, numerous software applications and related services. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe Company offers a portfolio of fee-based service and support products under the AppleCare\u00ae brand. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe offerings provide priority access to Apple technical support, access to the global Apple authorized service network for repair and replacement services, and in many cases additional coverage for instances of accidental damage or theft and loss, depending on the country and type of product. [AAPL 10-K FY2025 \u00b7 Item 1]",
+      "answer": "The Company also employs a variety of indirect distribution channels, such as third-party cellular network carriers and other resellers, for the sale of its products and certain of its services. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe markets for the Company\u2019s products and services are highly competitive and are characterized by aggressive price competition, downward pressure on gross margins, continual improvement in product performance, and price sensitivity on the part of consumers and businesses. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe Company designs and develops nearly the entire solution for its products, including the hardware, operating system, numerous software applications and related services. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe Company continues to develop new technologies to enhance existing products and services, and to expand the range of its offerings through research and development (\u201cR&D\u201d), licensing of intellectual property and acquisition of third-party businesses and technology. [AAPL 10-K FY2025 \u00b7 Item 1]\n\nThe Company offers a portfolio of fee-based service and support products under the AppleCare\u00ae brand. [AAPL 10-K FY2025 \u00b7 Item 1]",
       "citations": [
+        {
+          "doc": "AAPL 10-K FY2025",
+          "section": "Item 1"
+        },
         {
           "doc": "AAPL 10-K FY2025",
           "section": "Item 1"
@@ -190,28 +198,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1442.8,
+          "latency_ms": 2007.4,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.439"
         },
         {
           "node": "grade",
-          "latency_ms": 1061.4,
+          "latency_ms": 1711.0,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best 4.47, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 9.8,
+          "latency_ms": 8.4,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 17.6,
+          "latency_ms": 10.2,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2542.4,
+      "latency_ms": 3744.2,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -240,28 +248,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1388.2,
+          "latency_ms": 1596.6,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 4.324"
         },
         {
           "node": "grade",
-          "latency_ms": 1080.6,
+          "latency_ms": 894.4,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best 4.85, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 8.0,
+          "latency_ms": 37.4,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 8.8,
+          "latency_ms": 10.6,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2527.0,
+      "latency_ms": 2545.5,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -285,33 +293,33 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.2,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 1472.3,
+          "latency_ms": 1327.3,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -1.391"
         },
         {
           "node": "grade",
-          "latency_ms": 931.6,
+          "latency_ms": 972.0,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best -3.14, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 6.3,
+          "latency_ms": 7.2,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 9.7,
+          "latency_ms": 9.0,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2425.9,
+      "latency_ms": 2321.0,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -340,28 +348,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1552.9,
+          "latency_ms": 1851.0,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.661; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 869.1,
+          "latency_ms": 845.2,
           "detail": "company-match grade: MSFT in top-3 = True (windowed cross-encoder best 2.79, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 14.7,
+          "latency_ms": 15.1,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 8.2,
+          "latency_ms": 34.0,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2459.3,
+      "latency_ms": 2757.8,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -371,7 +379,7 @@
       "question": "What does NVIDIA say about its compute and networking platforms and the markets it serves?",
       "expected": "Answer drawn from NVIDIA's Item 1.",
       "refused": false,
-      "answer": "NVIDIA has a platform strategy, bringing together hardware, systems, software, algorithms, libraries, AI models and training data sets, and services to create unique value for the markets we serve. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThe NVIDIA Data Center platform is focused on accelerating compute-intensive workloads, such as AI, data processing, graphics, robotics, and scientific computing, delivering superior total cost of ownership relative to conventional CPU-only approaches. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThe platform consists of data center compute and networking infrastructure offerings typically delivered to customers as rack-scale systems, subsystems, or modules, along with software and services. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThis has enabled us to architect data center-scale computing platforms that can interconnect up to hundreds of thousands of compute nodes with high-performance networking. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThe Compute & Networking segment includes our Data Center accelerated computing and networking platforms and AI solutions and software, and Automotive platforms and autonomous and electric vehicle solutions including software. [NVDA 10-K FY2026 \u00b7 Item 1]",
+      "answer": "NVIDIA has a platform strategy, bringing together hardware, systems, software, algorithms, libraries, AI models and training data sets, and services to create unique value for the markets we serve. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThe NVIDIA Data Center platform is focused on accelerating compute-intensive workloads, such as AI, data processing, graphics, robotics, and scientific computing, delivering superior total cost of ownership relative to conventional CPU-only approaches. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThe platform consists of data center compute and networking infrastructure offerings typically delivered to customers as rack-scale systems, subsystems, or modules, along with software and services. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nThis has enabled us to architect data center-scale computing platforms that can interconnect up to hundreds of thousands of compute nodes with high-performance networking. [NVDA 10-K FY2026 \u00b7 Item 1]\n\nAt the foundation of the NVIDIA accelerated computing platform are our GPUs, which excel at parallel workloads such as the training and inferencing of neural networks. [NVDA 10-K FY2026 \u00b7 Item 1]",
       "citations": [
         {
           "doc": "NVDA 10-K FY2026",
@@ -394,28 +402,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1742.5,
+          "latency_ms": 1445.9,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 3.219"
         },
         {
           "node": "grade",
-          "latency_ms": 797.4,
+          "latency_ms": 752.7,
           "detail": "company-match grade: NVDA in top-3 = True (windowed cross-encoder best 4.52, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 5.8,
+          "latency_ms": 12.8,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 8.0,
+          "latency_ms": 31.8,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2578.5,
+      "latency_ms": 2249.9,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -444,28 +452,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1668.2,
+          "latency_ms": 1833.2,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -0.954"
         },
         {
           "node": "grade",
-          "latency_ms": 885.2,
+          "latency_ms": 804.2,
           "detail": "company-match grade: NVDA in top-3 = True (windowed cross-encoder best 0.52, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 7.0,
+          "latency_ms": 11.1,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 8.5,
+          "latency_ms": 37.7,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2574.9,
+      "latency_ms": 2691.9,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -493,22 +501,22 @@
       "trace": [
         {
           "node": "scope",
-          "latency_ms": 0.2,
+          "latency_ms": 0.1,
           "detail": "question is in corpus scope"
         },
         {
           "node": "retrieve",
-          "latency_ms": 3505.9,
+          "latency_ms": 3069.8,
           "detail": "per-company retrieval for ['AAPL', 'MSFT']: 8 merged candidates via hybrid+rerank on section chunks"
         },
         {
           "node": "grade",
-          "latency_ms": 558.6,
+          "latency_ms": 326.9,
           "detail": "company-match grade (comparison): covered ['AAPL', 'MSFT'], missing [] in merged top-8 (windowed cross-encoder best -0.09, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 7.1,
+          "latency_ms": 6.8,
           "detail": "extractive generation"
         },
         {
@@ -519,7 +527,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 4085.9,
+      "latency_ms": 3417.4,
       "pass": true,
       "note": "both companies cited; numbers verified"
     },
@@ -552,28 +560,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 3109.5,
+          "latency_ms": 2902.5,
           "detail": "per-company retrieval for ['AAPL', 'NVDA']: 8 merged candidates via hybrid+rerank on section chunks"
         },
         {
           "node": "grade",
-          "latency_ms": 1368.3,
+          "latency_ms": 910.6,
           "detail": "company-match grade (comparison): covered ['AAPL', 'NVDA'], missing [] in merged top-8 (windowed cross-encoder best -1.56, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 72.1,
+          "latency_ms": 15.9,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 11.9,
+          "latency_ms": 9.7,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 4569.5,
+      "latency_ms": 3844.1,
       "pass": true,
       "note": "both companies cited; numbers verified"
     },
@@ -593,12 +601,12 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1476.0,
+          "latency_ms": 1468.3,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -5.621"
         },
         {
           "node": "grade",
-          "latency_ms": 1113.9,
+          "latency_ms": 1204.1,
           "detail": "windowed cross-encoder top score -4.50 (threshold 0.0)"
         },
         {
@@ -609,7 +617,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2596.0,
+      "latency_ms": 2677.0,
       "pass": true,
       "note": "answer explicitly flags the ambiguity"
     },
@@ -629,12 +637,12 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1669.4,
+          "latency_ms": 1442.9,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 2.396"
         },
         {
           "node": "grade",
-          "latency_ms": 595.6,
+          "latency_ms": 1609.8,
           "detail": "windowed cross-encoder top score 3.05 (threshold 0.0)"
         },
         {
@@ -645,7 +653,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2270.2,
+      "latency_ms": 3064.8,
       "pass": true,
       "note": "answer explicitly flags the ambiguity"
     },
@@ -671,7 +679,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 2.7,
+      "latency_ms": 3.7,
       "pass": true,
       "note": "honest refusal"
     },
@@ -697,7 +705,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 1.8,
+      "latency_ms": 4.8,
       "pass": true,
       "note": "honest refusal"
     },
@@ -722,28 +730,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1620.6,
+          "latency_ms": 1810.4,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -8.720; intent-adjusted ranking (figure-bearing chunks up, definitional boilerplate down)"
         },
         {
           "node": "grade",
-          "latency_ms": 867.1,
+          "latency_ms": 1250.2,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -7.89, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 8.5,
+          "latency_ms": 9.8,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 8.6,
+          "latency_ms": 18.1,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2511.9,
+      "latency_ms": 3104.5,
       "pass": true,
       "note": "answered with gold-section citation; numbers verified"
     },
@@ -773,28 +781,28 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1395.9,
+          "latency_ms": 1411.1,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score -1.078"
         },
         {
           "node": "grade",
-          "latency_ms": 515.6,
+          "latency_ms": 784.2,
           "detail": "company-match grade: AAPL in top-3 = True (windowed cross-encoder best -3.36, recorded not gated)"
         },
         {
           "node": "generate",
-          "latency_ms": 2.6,
+          "latency_ms": 2.2,
           "detail": "extractive generation"
         },
         {
           "node": "verify",
-          "latency_ms": 8.6,
+          "latency_ms": 8.8,
           "detail": "all numbers in the answer trace to cited chunks or the figures table"
         }
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 5423.2,
+      "latency_ms": 5460.7,
       "pass": true,
       "note": "context kept; answered with gold-section citation; numbers verified"
     },
@@ -814,12 +822,12 @@
         },
         {
           "node": "retrieve",
-          "latency_ms": 1454.7,
+          "latency_ms": 1878.2,
           "detail": "10 candidates via hybrid+rerank on section chunks; top score 0.078"
         },
         {
           "node": "grade",
-          "latency_ms": 815.8,
+          "latency_ms": 649.5,
           "detail": "windowed cross-encoder top score -0.49 (threshold 0.0)"
         },
         {
@@ -830,7 +838,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "all numbers in the answer trace to cited chunks or the figures table",
-      "latency_ms": 2277.2,
+      "latency_ms": 2532.5,
       "pass": true,
       "note": "answer explicitly flags the ambiguity"
     },
@@ -856,7 +864,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 3.9,
+      "latency_ms": 2.6,
       "pass": true,
       "note": "honest-scope refusal for an off-topic request"
     },
@@ -882,7 +890,7 @@
       ],
       "faithful": true,
       "faithfulness_detail": "n/a (refused)",
-      "latency_ms": 2.8,
+      "latency_ms": 27.7,
       "pass": true,
       "note": "honest-scope refusal for an off-topic request"
     }

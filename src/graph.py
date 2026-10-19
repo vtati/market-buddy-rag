@@ -873,9 +873,15 @@ def _effective_tickers(question: str, corpus: str = "active") -> set[str]:
 
 def _evidence(state: GraphState) -> list[dict]:
     """The chunk set generation may cite and verification checks
-    against: top-4 normally, the full merged top-8 for comparisons."""
+    against: top-6 normally, the full merged top-8 for comparisons.
+    The window is wider than the grade gate's top-3 on purpose: the
+    chunk carrying the asked topic can rank just below a filing's
+    preamble chunks (for the FY2025 MD&A Services question the
+    narrative chunk ranks #5) — a top-4 window starved generation of
+    it and the answer came back 'not in the context' for a passage
+    the corpus holds and retrieval had found."""
     n = 8 if len(_mentioned_tickers(state["question"],
-                                     state.get("corpus", "active"))) >= 2 else 4
+                                     state.get("corpus", "active"))) >= 2 else 6
     return state.get("results", [])[:n]
 
 
