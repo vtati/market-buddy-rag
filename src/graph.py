@@ -876,7 +876,12 @@ def _llm_answer(state: GraphState, strict_note: str = "") -> tuple[str, list[dic
         context_parts.append(f"[{r['doc']} · {r['section']}]\n{r['text'][:2600]}")
     figures = load_figures()
     context_parts.append("[AAPL · SEC company facts]\n" + figures_as_text(figures[-8:]))
-    session_figs = registry.session_figures()
+    # Session rows that duplicate a bundled row (a live add of AAPL
+    # fetches the same company-facts) are already in the block above.
+    bundled_keys = {(f["ticker"], f["concept"], f["fiscal_year"]) for f in figures}
+    session_figs = [f for f in registry.session_figures()
+                    if (f["ticker"], f["concept"], f["fiscal_year"])
+                    not in bundled_keys]
     if session_figs:
         context_parts.append("[Session companies · SEC company facts]\n"
                              + figures_as_text(session_figs))

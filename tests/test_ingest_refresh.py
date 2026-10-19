@@ -5,8 +5,9 @@ already in the session registry with "already in the corpus — nothing
 to fetch", so a newer 10-K on EDGAR was never picked up. Now a re-add
 checks EDGAR (via an injectable meta function — no live SEC calls in
 tests): same accession -> "already current"; new accession -> full
-re-ingest replacing the registry entry. Bundled companies keep their
-frozen-snapshot behaviour.
+re-ingest replacing the registry entry. Adding a BUNDLED ticker live
+(frozen snapshot untouched, session copy registered alongside it) is
+covered in test_ingest_bundled_add.py.
 """
 
 import pytest
@@ -91,10 +92,3 @@ def test_readd_with_newer_accession_reingests_and_replaces(_ingested_tsla,
     # The replacement text is what chat now retrieves.
     docs = registry.session_documents()
     assert len(docs) == 1 and "refreshed" in docs[0].page_content
-
-
-def test_bundled_company_readd_stays_frozen():
-    job = create_job("AAPL")
-    result = ingest_company("AAPL", job=job, allow_network=False)
-    assert result["source"] == "bundled"
-    assert "AAPL" not in registry.session_companies()

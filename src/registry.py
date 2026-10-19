@@ -128,8 +128,22 @@ def session_figures() -> list[dict]:
 
 
 def all_figures() -> list[dict]:
-    """Bundled (AAPL) figures + every session company's figures."""
-    return load_figures() + session_figures()
+    """Bundled (AAPL) figures + every session company's figures.
+
+    Deduped by (ticker, concept, fiscal_year), bundled rows winning:
+    a live add of a bundled ticker fetches the SAME SEC company-facts
+    the bundled table holds, and consumers (performance headline,
+    answer verification, market snapshot) must see exactly one row
+    per company-concept-year — never a double."""
+    seen: set[tuple[str, str, int]] = set()
+    rows: list[dict] = []
+    for row in load_figures() + session_figures():
+        key = (row["ticker"], row["concept"], row["fiscal_year"])
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(row)
+    return rows
 
 
 def known_tickers() -> set[str]:
