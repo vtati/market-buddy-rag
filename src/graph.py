@@ -681,7 +681,7 @@ def grade_node(state: GraphState) -> dict:
     # gold chunk was rank 1 for 11 of 12 probe questions. The windowed
     # score is still computed and traced, and it gates company-less
     # questions, where it is well-behaved.
-    mentioned = _mentioned_tickers(state["question"], state.get("corpus", "active"))
+    mentioned = _effective_tickers(state["question"], state.get("corpus", "active"))
     if len(mentioned) == 1:
         ticker = next(iter(mentioned))
         relevant = any(r["ticker"] == ticker for r in results[:3])
@@ -698,7 +698,15 @@ def grade_node(state: GraphState) -> dict:
         relevant = best >= GRADE_THRESHOLD
         detail = f"windowed cross-encoder top score {best:.2f} (threshold {GRADE_THRESHOLD})"
     llm = get_llm()
-    if relevant and llm is not None:
+    # The LLM check tightens ONLY the company-less path, where
+    # relevance came from the windowed score. For company-named (or
+    # corpus-pinned) questions the company-match gate above is the
+    # calibrated signal — and the judge sees only 1,200-char chunk
+    # prefixes, so letting it veto company-matched evidence refused
+    # questions whose on-topic passage sat deeper in the chunk (the
+    # session MD&A case: the eligible prefixes were an Item 7 preamble
+    # and the prior year's filing, neither showing the asked topic).
+    if relevant and llm is not None and not mentioned:
         verdicts = []
         for r, s in zip(results[:3], scores):
             if s < GRADE_THRESHOLD:
@@ -844,6 +852,23 @@ def _mentioned_tickers(question: str, corpus: str = "active") -> set[str]:
     aliases = registry.company_aliases(_allowed_tickers(corpus))
     q = question.lower()
     return {t for alias, t in aliases.items() if alias in q}
+
+
+def _effective_tickers(question: str, corpus: str = "active") -> set[str]:
+    """The companies a question is effectively about: the ones it
+    names, or — when it names none but the corpus selector pins
+    exactly ONE company (corpus='AAPL') — that company. A pinned
+    corpus makes a company-less question's referent unambiguous, so
+    grading and routing must treat it as company-named; keying only
+    on the question text sent pinned questions to the clarify route
+    ("Which company do you mean?" about the one company in scope)."""
+    mentioned = _mentioned_tickers(question, corpus)
+    if mentioned:
+        return mentioned
+    allowed = _allowed_tickers(corpus)
+    if len(allowed) == 1:
+        return set(allowed)
+    return set()
 
 
 def _evidence(state: GraphState) -> list[dict]:
@@ -1114,7 +1139,7 @@ def _route_after_scope(state: GraphState) -> str:
 
 
 def _route_after_grade(state: GraphState) -> str:
-    mentioned = _mentioned_tickers(state["question"],
+    mentioned = _effective_tickers(state["question"],
                                    state.get("corpus", "active"))
     if state.get("relevant"):
         # Relevant evidence but no company named: don't silently pick one.
