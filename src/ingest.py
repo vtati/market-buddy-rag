@@ -31,6 +31,7 @@ import json
 import re
 import time
 import urllib.request
+from bisect import bisect_right
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -152,7 +153,13 @@ ITEM_TITLE_KEYWORDS = {
     "15": ("exhibit",),
     "16": ("form 10-k summary",),
 }
-_HEADING_RE = re.compile(r"^Item\s+(\d{1,2}[A-Z]?)\.\s+(.{2,110})$", re.IGNORECASE)
+_HEADING_RE = re.compile(r"^Item\s+(\d{1,2}[A-Z]?)\.\s*(.{2,110})$", re.IGNORECASE)
+_ITEM_ONLY_RE = re.compile(r"^Item\s+(\d{1,2}[A-Z]?)\.$", re.IGNORECASE)
+
+
+def _norm_line(line: str) -> str:
+    """Collapse every whitespace run (incl. NBSP) to one space, stripped."""
+    return re.sub(r"\s+", " ", line.replace("\xa0", " ")).strip()
 
 
 def find_item_sections(text: str) -> dict[str, tuple[int, int]]:
@@ -163,26 +170,71 @@ def find_item_sections(text: str) -> dict[str, tuple[int, int]]:
     the selection walks the canonical item order in reverse and keeps the
     last candidate that still precedes the next item's chosen heading —
     which lands on the body headings in real filings.
+
+    Heading shapes vary by filer (Netflix's iXBRL 10-K broke this):
+    ``Item 1.Business`` with NO space after the period, and TOC entries
+    with the label alone on one line and the title on the next. Lines
+    are whitespace-normalized before matching, the post-period space is
+    optional, and a bare ``Item N.`` line pairs with the next non-empty
+    line as its title. TOC entries pair up the same way, but the
+    reverse-walk still prefers the later body headings, which are also
+    the occurrences followed by substantial body text.
     """
+    lines = text.split("\n")
+    norms = [_norm_line(line) for line in lines]
     candidates: dict[str, list[int]] = {}
     offset = 0
-    for line in text.split("\n"):
-        m = _HEADING_RE.match(line.strip())
+    for i, line in enumerate(lines):
+        norm = norms[i]
+        m = _HEADING_RE.match(norm)
         if m:
             item = m.group(1).upper()
             title = m.group(2).strip().lower()
             keywords = ITEM_TITLE_KEYWORDS.get(item, ())
             if keywords and any(k in title for k in keywords):
                 candidates.setdefault(item, []).append(offset)
+        else:
+            bare = _ITEM_ONLY_RE.match(norm)
+            if bare:
+                item = bare.group(1).upper()
+                keywords = ITEM_TITLE_KEYWORDS.get(item, ())
+                nxt = next((n for n in norms[i + 1:] if n), "")
+                if keywords and any(k in nxt.lower() for k in keywords):
+                    candidates.setdefault(item, []).append(offset)
         offset += len(line) + 1
 
+    # TOC disambiguation. Table-of-contents entries form a dense
+    # cluster — the next heading candidate follows within a few
+    # hundred chars — while a body heading is followed by substantial
+    # text before the next heading. Candidates with a >= 1000-char gap
+    # to the next candidate (of ANY item) are "body" candidates and
+    # win outright; an item with no body candidate falls back to all
+    # its candidates (short closing sections in excerpt files).
+    all_offsets = sorted(o for offs in candidates.values() for o in offs)
+
+    def _gap(off: int) -> int:
+        i = bisect_right(all_offsets, off)
+        nxt = all_offsets[i] if i < len(all_offsets) else len(text)
+        return nxt - off
+
+    pools: dict[str, list[int]] = {}
+    for item, offs in candidates.items():
+        body = [o for o in offs if _gap(o) >= 1000]
+        pools[item] = body or offs
+
+    # Choose in canonical order, enforcing strictly increasing starts:
+    # each item takes its latest pooled candidate that still follows
+    # the previously chosen item's start. (A reverse walk lets one
+    # TOC-only late item — e.g. a hyphen-variant Item 16 — drag every
+    # earlier choice back into the contents cluster.)
     chosen: dict[str, int] = {}
-    limit = len(text) + 1
-    for item in reversed(ITEM_ORDER):
-        offsets = [o for o in candidates.get(item, []) if o < limit]
-        if offsets:
-            chosen[item] = max(offsets)
-            limit = chosen[item]
+    floor = -1
+    for item in ITEM_ORDER:
+        for off in sorted(pools.get(item, []), reverse=True):
+            if off > floor:
+                chosen[item] = off
+                floor = off
+                break
 
     spans: dict[str, tuple[int, int]] = {}
     ordered = sorted(chosen.items(), key=lambda kv: kv[1])

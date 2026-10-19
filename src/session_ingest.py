@@ -74,11 +74,20 @@ def _fail(job: dict | None, stage: str, reason: str) -> None:
 
 
 def ingest_company(ticker: str, job: dict | None = None,
-                   allow_network: bool = True) -> dict:
+                   allow_network: bool = True,
+                   latest_meta_fn=None) -> dict:
     """Run the full pipeline for one ticker; returns the result meta.
 
     Raises IngestError with an honest reason on failure. ``job`` (from
     :func:`create_job`) is updated in place as stages complete.
+
+    Re-adding a SESSION company refreshes it: EDGAR's latest 10-K
+    accession is compared with the registered one — identical means
+    "already current" (no download); a newer filing means a full
+    re-ingest that replaces the registry entry. Bundled companies are
+    the frozen snapshot and never refresh. ``latest_meta_fn`` injects
+    the EDGAR latest-10-K lookup (tests fake it; default
+    :func:`src.ingest.latest_10k_meta_for`).
     """
     ticker = ticker.strip().upper()
     try:
@@ -95,14 +104,44 @@ def ingest_company(ticker: str, job: dict | None = None,
         _mark(job, "resolve", "done", f"{name} · CIK {cik}")
 
         existing = registry.session_companies().get(ticker)
+        refresh_from: dict | None = None
         if existing is not None:
-            for stage in STAGES[1:]:
-                _mark(job, stage, "done", "already in the corpus — nothing to fetch")
-            _mark(job, "ready", "done", "already registered in this session corpus")
-            if job is not None:
-                job["stage"] = "ready"
-                job["result"] = existing
-            return existing
+            latest = None
+            if allow_network:
+                try:
+                    latest = (latest_meta_fn or latest_10k_meta_for)(cik, ticker)
+                except Exception:
+                    latest = None  # EDGAR unreachable: keep what we have
+            if latest is None or latest["accession"] == existing["accession"]:
+                for stage in STAGES[1:]:
+                    _mark(job, stage, "done",
+                          "already in the corpus — nothing to fetch")
+                if latest is not None:
+                    _mark(job, "fetch", "done",
+                          f"already current — EDGAR's latest 10-K is accession "
+                          f"{latest['accession']}, filed {latest['filed']}, "
+                          f"the one already in the corpus")
+                    _mark(job, "ready", "done",
+                          f"already current (accession {latest['accession']}, "
+                          f"filed {latest['filed']})")
+                else:
+                    _mark(job, "ready", "done",
+                          "already registered in this session corpus")
+                if job is not None:
+                    job["stage"] = "ready"
+                    job["result"] = existing
+                return existing
+            # A newer 10-K exists: fall through and re-ingest, replacing
+            # the registry entry. The precache must NOT serve the old
+            # filing, so it is bypassed for this run.
+            refresh_from = {
+                "accession": existing["accession"],
+                "new_accession": latest["accession"],
+                "filed": latest["filed"],
+            }
+            _mark(job, "fetch", "active",
+                  f"newer filing found: 10-K accession {latest['accession']} "
+                  f"(filed {latest['filed']}) replaces {existing['accession']}")
 
         if ticker in TICKER_CIK:
             # Bundled company: it is already part of the frozen corpus.
@@ -118,7 +157,7 @@ def ingest_company(ticker: str, job: dict | None = None,
             return meta
 
         # -- fetch + clean --------------------------------------------------
-        precached = registry.precached_company(ticker)
+        precached = None if refresh_from else registry.precached_company(ticker)
         if precached is not None:
             meta_pre, text, figures = precached
             _mark(job, "fetch", "done",
@@ -136,14 +175,20 @@ def ingest_company(ticker: str, job: dict | None = None,
                     f"{ticker} is not precached and network access is disabled")
             _mark(job, "fetch", "active")
             try:
-                meta10k = latest_10k_meta_for(cik, ticker)
+                meta10k = (latest_meta_fn or latest_10k_meta_for)(cik, ticker)
                 full_text, meta10k = fetch_filing_text_for(cik, ticker)
             except IngestError:
                 raise
             except Exception as exc:  # EDGAR down, no 10-K, bad payload…
                 raise IngestError(f"EDGAR fetch failed for {ticker}: {exc}") from exc
-            _mark(job, "fetch", "done",
-                  f"10-K accession {meta10k['accession']}, filed {meta10k['filed']}")
+            if refresh_from:
+                _mark(job, "fetch", "done",
+                      f"newer filing ingested: 10-K accession "
+                      f"{meta10k['accession']}, filed {meta10k['filed']} — "
+                      f"replaces accession {refresh_from['accession']}")
+            else:
+                _mark(job, "fetch", "done",
+                      f"10-K accession {meta10k['accession']}, filed {meta10k['filed']}")
             _mark(job, "clean", "active")
             text, items = slice_items(full_text)
             if not items:
